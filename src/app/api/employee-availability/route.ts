@@ -1,0 +1,90 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+type OverrideType = "custom_hours" | "day_off" | "vacation" | "sick_leave";
+
+type DefaultScheduleRow = {
+  employee_id: string;
+  day_of_week: number;
+  is_working: boolean;
+};
+
+type OverrideRow = {
+  employee_id: string;
+  override_date: string;
+  override_type: OverrideType;
+};
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const date = searchParams.get("date");
+
+  if (!date) {
+    return NextResponse.json(
+      { error: "Date query param je obavezan." },
+      { status: 400 },
+    );
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return NextResponse.json({ error: "Niste prijavljeni." }, { status: 401 });
+  }
+
+  const dayOfWeek = new Date(`${date}T00:00:00`).getDay();
+
+  const [
+    { data: employees, error: employeesError },
+    { data: defaultSchedules, error: defaultSchedulesError },
+    { data: overrides, error: overridesError },
+  ] = await Promise.all([
+    supabase.from("employees").select("id").eq("is_active", true),
+    supabase
+      .from("employee_default_schedule")
+      .select("employee_id, day_of_week, is_working")
+      .eq("day_of_week", dayOfWeek),
+    supabase
+      .from("employee_schedule_overrides")
+      .select("employee_id, override_date, override_type")
+      .eq("override_date", date),
+  ]);
+
+  if (employeesError || defaultSchedulesError || overridesError) {
+    return NextResponse.json(
+      {
+        error:
+          employeesError?.message ||
+          defaultSchedulesError?.message ||
+          overridesError?.message ||
+          "Greška pri dohvaćanju dostupnosti zaposlenika.",
+      },
+      { status: 500 },
+    );
+  }
+
+  const employeeIds = (employees ?? []).map((e) => e.id);
+  const defaultRows = (defaultSchedules ?? []) as DefaultScheduleRow[];
+  const overrideRows = (overrides ?? []) as OverrideRow[];
+
+  const workingEmployeeIds = employeeIds.filter((employeeId) => {
+    const override = overrideRows.find((row) => row.employee_id === employeeId);
+
+    if (override) {
+      return override.override_type === "custom_hours";
+    }
+
+    const defaultSchedule = defaultRows.find(
+      (row) => row.employee_id === employeeId,
+    );
+
+    return defaultSchedule?.is_working === true;
+  });
+
+  return NextResponse.json({ workingEmployeeIds });
+}

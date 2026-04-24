@@ -1,26 +1,92 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* =========================
+   APP THEME (Tailwind v4)
+========================= */
+
+@theme {
+  --color-app-bg: #F3EEEA;
+  --color-app-text: #2B2A28;
+  --color-app-soft: #B0A695;
+  --color-app-accent: #776B5D;
+  --color-app-card: #EBE3D5;
+  --color-app-card-alt: #F7F2EC;
+  --color-app-border: #4B4844;
+  --color-app-muted: #5A5753;
+  --color-app-dark: #4B4844;
+  --color-app-dark-2: #5A5753;
+  --color-app-table-head: #E7DED0;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* =========================
+   ROOT
+========================= */
+
+:root {
+  --background: #F3EEEA;
+  --foreground: #2B2A28;
 }
+
+/* =========================
+   BASE STYLING
+========================= */
+
+html,
+body {
+  background-color: var(--color-app-bg);
+  color: var(--color-app-text);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* =========================
+   INPUT + BUTTON FOCUS FIX
+========================= */
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-app-accent);
+  box-shadow: 0 0 0 2px rgba(119, 107, 93, 0.2);
+}
+
+/* =========================
+   TABLE IMPROVEMENTS
+========================= */
+
+table {
+  border-color: var(--color-app-soft);
+}
+
+thead {
+  background-color: var(--color-app-table-head);
+}
+
+/* =========================
+   SCROLLBAR (nice UX)
+========================= */
+
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-app-soft);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* =========================
+   DARK MODE (disabled)
+========================= */
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #F3EEEA;
+    --foreground: #2B2A28;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }

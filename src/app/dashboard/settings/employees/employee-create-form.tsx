@@ -1,0 +1,101 @@
+"use client";
+
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  createEmployeeAction,
+  type EmployeeActionState,
+} from "@/features/settings/actions";
+
+const initialState: EmployeeActionState = {
+  error: "",
+  success: "",
+  values: {
+    display_name: "",
+    email: "",
+    phone: "",
+    color_hex: "",
+    password: "",
+  },
+};
+
+export default function EmployeeCreateForm() {
+  const [state, formAction, pending] = useActionState(
+    createEmployeeAction,
+    initialState,
+  );
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state.error) {
+      toast.error(state.error);
+    }
+
+    if (state.success) {
+      toast.success(state.success);
+      router.refresh();
+    }
+  }, [state, router]);
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <input
+        name="display_name"
+        placeholder="Ime i prezime djelatnika"
+        defaultValue={state.values.display_name}
+        className="w-full rounded-xl border border-neutral-300 px-4 py-3 outline-none"
+        required
+      />
+
+      <input
+        name="email"
+        type="email"
+        placeholder="Email adresa"
+        defaultValue={state.values.email}
+        className="w-full rounded-xl border border-neutral-300 px-4 py-3 outline-none"
+        required
+      />
+
+      <input
+        name="phone"
+        placeholder="Telefon"
+        defaultValue={state.values.phone}
+        className="w-full rounded-xl border border-neutral-300 px-4 py-3 outline-none"
+      />
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">Boja</label>
+
+        <div className="flex items-center gap-3">
+          <input
+            name="color_hex"
+            type="color"
+            defaultValue={state.values.color_hex || "#C084FC"}
+            className="h-12 w-16 cursor-pointer rounded-lg border border-neutral-300 bg-white p-1"
+          />
+
+          <span className="text-sm text-neutral-600">
+            Odaberi boju djelatnika
+          </span>
+        </div>
+      </div>
+
+      <p className="text-sm text-neutral-600">
+        Kod kreiranja djelatnika automatski se stvara korisnički račun. Početna
+        lozinka bit će <span className="font-medium">1234</span>.
+      </p>
+
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-xl bg-black px-5 py-3 font-medium text-white disabled:opacity-50"
+        >
+          {pending ? "Dodavanje..." : "Dodaj djelatnika"}
+        </button>
+      </div>
+    </form>
+  );
+}

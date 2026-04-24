@@ -1,0 +1,277 @@
+import { createClient } from "@/lib/supabase/server";
+import type {
+  EmployeeItem,
+  EquipmentItem,
+  RoomItem,
+  ServiceItem,
+  SalonWorkingHourItem,
+  ServiceGroupLimitItem,
+} from "./types";
+
+export async function getServices(): Promise<ServiceItem[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("services")
+    .select(
+      "id, name, duration_minutes, service_group, priority_room, is_active",
+    )
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    throw new Error("Nije moguće dohvatiti usluge.");
+  }
+
+  return (data ?? []) as ServiceItem[];
+}
+
+export async function getRooms(): Promise<RoomItem[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("rooms")
+    .select("id, name, is_active")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    throw new Error("Nije moguće dohvatiti sobe.");
+  }
+
+  return (data ?? []) as RoomItem[];
+}
+
+export async function getEquipment(): Promise<EquipmentItem[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("equipment")
+    .select("id, name, quantity, is_active")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    throw new Error("Nije moguće dohvatiti opremu.");
+  }
+
+  return (data ?? []) as EquipmentItem[];
+}
+
+export async function getEmployees(): Promise<EmployeeItem[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("employees")
+    .select("id, profile_id, display_name, email, phone, color_hex, is_active")
+    .order("display_name", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    throw new Error("Nije moguće dohvatiti djelatnike.");
+  }
+
+  return (data ?? []) as EmployeeItem[];
+}
+
+export type ServiceRoomMappingRow = {
+  service_id: string;
+  room_id: string;
+};
+
+export async function getServiceRoomMappingData() {
+  const supabase = await createClient();
+
+  const [
+    { data: services, error: servicesError },
+    { data: rooms, error: roomsError },
+    { data: mappings, error: mappingsError },
+  ] = await Promise.all([
+    supabase
+      .from("services")
+      .select("id, name, is_active")
+      .order("name", { ascending: true }),
+
+    supabase
+      .from("rooms")
+      .select("id, name, is_active")
+      .order("name", { ascending: true }),
+
+    supabase.from("service_rooms").select("service_id, room_id"),
+  ]);
+
+  if (servicesError) {
+    console.error(servicesError);
+    throw new Error("Nije moguće dohvatiti usluge.");
+  }
+
+  if (roomsError) {
+    console.error(roomsError);
+    throw new Error("Nije moguće dohvatiti sobe.");
+  }
+
+  if (mappingsError) {
+    console.error(mappingsError);
+    throw new Error("Nije moguće dohvatiti mapiranja usluga i soba.");
+  }
+
+  return {
+    services: services ?? [],
+    rooms: rooms ?? [],
+    mappings: (mappings ?? []) as ServiceRoomMappingRow[],
+  };
+}
+
+export type EmployeeServiceMappingRow = {
+  employee_id: string;
+  service_id: string;
+};
+
+export async function getEmployeeServiceMappingData() {
+  const supabase = await createClient();
+
+  const [
+    { data: employees, error: employeesError },
+    { data: services, error: servicesError },
+    { data: mappings, error: mappingsError },
+  ] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("id, display_name, is_active")
+      .order("display_name", { ascending: true }),
+
+    supabase
+      .from("services")
+      .select("id, name, is_active")
+      .order("name", { ascending: true }),
+
+    supabase.from("employee_services").select("employee_id, service_id"),
+  ]);
+
+  if (employeesError) {
+    console.error(employeesError);
+    throw new Error("Nije moguće dohvatiti zaposlenike.");
+  }
+
+  if (servicesError) {
+    console.error(servicesError);
+    throw new Error("Nije moguće dohvatiti usluge.");
+  }
+
+  if (mappingsError) {
+    console.error(mappingsError);
+    throw new Error("Nije moguće dohvatiti mapiranja zaposlenika i usluga.");
+  }
+
+  return {
+    employees: employees ?? [],
+    services: services ?? [],
+    mappings: (mappings ?? []) as EmployeeServiceMappingRow[],
+  };
+}
+
+export type ServiceEquipmentMappingRow = {
+  service_id: string;
+  equipment_id: string;
+};
+
+export async function getServiceEquipmentMappingData() {
+  const supabase = await createClient();
+
+  const [
+    { data: services, error: servicesError },
+    { data: equipment, error: equipmentError },
+    { data: mappings, error: mappingsError },
+  ] = await Promise.all([
+    supabase
+      .from("services")
+      .select("id, name, is_active")
+      .order("name", { ascending: true }),
+
+    supabase
+      .from("equipment")
+      .select("id, name, is_active")
+      .order("name", { ascending: true }),
+
+    supabase.from("service_equipment").select("service_id, equipment_id"),
+  ]);
+
+  if (servicesError) {
+    console.error(servicesError);
+    throw new Error("Nije moguće dohvatiti usluge.");
+  }
+
+  if (equipmentError) {
+    console.error(equipmentError);
+    throw new Error("Nije moguće dohvatiti opremu.");
+  }
+
+  if (mappingsError) {
+    console.error(mappingsError);
+    throw new Error("Nije moguće dohvatiti mapiranja usluga i opreme.");
+  }
+
+  return {
+    services: services ?? [],
+    equipment: equipment ?? [],
+    mappings: (mappings ?? []) as ServiceEquipmentMappingRow[],
+  };
+}
+
+export async function getSalonWorkingHours(): Promise<SalonWorkingHourItem[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("salon_working_hours")
+    .select("day_of_week, opens_at, closes_at, is_closed")
+    .order("day_of_week", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    throw new Error("Nije moguće dohvatiti radno vrijeme salona.");
+  }
+
+  return (data ?? []) as SalonWorkingHourItem[];
+}
+
+export async function getServiceGroupLimitsData() {
+  const supabase = await createClient();
+
+  const [
+    { data: services, error: servicesError },
+    { data: limits, error: limitsError },
+  ] = await Promise.all([
+    supabase
+      .from("services")
+      .select("service_group")
+      .not("service_group", "is", null),
+
+    supabase
+      .from("service_group_limits")
+      .select("group_name, max_parallel")
+      .order("group_name", { ascending: true }),
+  ]);
+
+  if (servicesError) {
+    console.error(servicesError);
+    throw new Error("Nije moguće dohvatiti grupe usluga.");
+  }
+
+  if (limitsError) {
+    console.error(limitsError);
+    throw new Error("Nije moguće dohvatiti limite grupa.");
+  }
+
+  const uniqueGroups = Array.from(
+    new Set(
+      (services ?? [])
+        .map((row) => row.service_group)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "hr"));
+
+  return {
+    groups: uniqueGroups,
+    limits: (limits ?? []) as ServiceGroupLimitItem[],
+  };
+}
