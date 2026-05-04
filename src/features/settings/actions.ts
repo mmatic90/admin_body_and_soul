@@ -63,6 +63,7 @@ export async function createServiceAction(
       service_group: serviceGroup || null,
       priority_room: priorityRoom || null,
       is_active: true,
+      is_online_bookable: false,
     };
 
     const { data, error } = await supabase
@@ -346,6 +347,7 @@ export async function bulkUpdateServicesAction(
     service_group: string | null;
     priority_room: string | null;
     is_active: boolean;
+    is_online_bookable: boolean;
   }>,
 ) {
   try {
@@ -384,6 +386,7 @@ export async function bulkUpdateServicesAction(
       service_group: item.service_group?.trim() || null,
       priority_room: item.priority_room?.trim() || null,
       is_active: item.is_active,
+      is_online_bookable: item.is_online_bookable,
     }));
 
     const { error } = await supabase

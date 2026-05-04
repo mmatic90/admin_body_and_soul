@@ -5,6 +5,7 @@ export type ServiceItem = {
   service_group: string | null;
   priority_room: string | null;
   is_active: boolean;
+  is_online_bookable: boolean;
 };
 
 export type RoomItem = {

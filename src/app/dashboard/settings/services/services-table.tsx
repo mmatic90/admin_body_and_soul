@@ -21,6 +21,7 @@ type EditableService = {
   service_group: string;
   priority_room: string;
   is_active: boolean;
+  is_online_bookable: boolean;
 };
 
 function toEditable(service: ServiceItem): EditableService {
@@ -31,6 +32,7 @@ function toEditable(service: ServiceItem): EditableService {
     service_group: service.service_group || "",
     priority_room: service.priority_room || "",
     is_active: service.is_active,
+    is_online_bookable: service.is_online_bookable,
   };
 }
 
@@ -66,6 +68,7 @@ export default function ServicesTable({ services }: Props) {
           service_group: item.service_group || null,
           priority_room: item.priority_room || null,
           is_active: item.is_active,
+          is_online_bookable: item.is_online_bookable,
         })),
       );
 
@@ -116,6 +119,7 @@ export default function ServicesTable({ services }: Props) {
               <th className="px-4 py-3 font-semibold">Grupa</th>
               <th className="px-4 py-3 font-semibold">Prioritetna soba</th>
               <th className="px-4 py-3 font-semibold">Aktivno</th>
+              <th className="px-4 py-3 font-semibold">Online rezervacije</th>
               <th className="px-4 py-3 font-semibold">Akcije</th>
             </tr>
           </thead>
@@ -188,6 +192,39 @@ export default function ServicesTable({ services }: Props) {
                     <span
                       className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
                         service.is_active ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </td>
+
+                <td className="px-4 py-4">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={service.is_online_bookable}
+                    onClick={() =>
+                      updateItem(
+                        service.id,
+                        "is_online_bookable",
+                        !service.is_online_bookable,
+                      )
+                    }
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                      service.is_online_bookable
+                        ? "bg-app-accent"
+                        : "bg-app-soft"
+                    }`}
+                    title={
+                      service.is_online_bookable
+                        ? "Dostupno za online rezervacije"
+                        : "Nije dostupno za online rezervacije"
+                    }
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                        service.is_online_bookable
+                          ? "translate-x-6"
+                          : "translate-x-1"
                       }`}
                     />
                   </button>
