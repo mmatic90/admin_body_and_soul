@@ -1,5 +1,9 @@
 import Link from "next/link";
 import {
+  acceptOnlineBookingRequestAction,
+  rejectOnlineBookingRequestAction,
+} from "@/features/online-bookings/actions";
+import {
   getOnlineBookingCounts,
   getOnlineBookings,
   type OnlineBookingStatus,
@@ -134,93 +138,199 @@ export default async function OnlineBookingsPage({
           </div>
         ) : (
           <div className="space-y-4">
-            {bookings.map((booking) => (
-              <article
-                key={booking.id}
-                className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm"
-              >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-xl font-semibold text-app-text">
-                        {booking.client_full_name}
-                      </h2>
+            {bookings.map((booking) => {
+              const canQuickAccept =
+                booking.status === "pending" &&
+                booking.final_employee_id &&
+                booking.final_room_id &&
+                (booking.final_duration_minutes || booking.duration_minutes);
 
-                      <span
-                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
-                          booking.status,
-                        )}`}
+              return (
+                <article
+                  key={booking.id}
+                  className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-xl font-semibold text-app-text">
+                          {booking.client_full_name}
+                        </h2>
+
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
+                            booking.status,
+                          )}`}
+                        >
+                          {statusLabel(booking.status)}
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-sm text-app-muted">
+                        {booking.services?.name ?? "Nepoznata usluga"} ·{" "}
+                        {formatDateHr(booking.requested_date)} u{" "}
+                        {booking.start_time?.slice(0, 5)}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        href={`/dashboard/online-bookings/${booking.id}`}
+                        className="rounded-xl bg-app-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
                       >
-                        {statusLabel(booking.status)}
-                      </span>
+                        Otvori zahtjev
+                      </Link>
+
+                      {booking.status === "pending" ? (
+                        <>
+                          {canQuickAccept ? (
+                            <form action={acceptOnlineBookingRequestAction}>
+                              <input
+                                type="hidden"
+                                name="request_id"
+                                value={booking.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="employee_id"
+                                value={booking.final_employee_id}
+                              />
+                              <input
+                                type="hidden"
+                                name="room_id"
+                                value={booking.final_room_id}
+                              />
+                              <input
+                                type="hidden"
+                                name="duration_minutes"
+                                value={
+                                  booking.final_duration_minutes ??
+                                  booking.duration_minutes
+                                }
+                              />
+
+                              <button
+                                type="submit"
+                                className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                              >
+                                Prihvati
+                              </button>
+                            </form>
+                          ) : null}
+
+                          <form action={rejectOnlineBookingRequestAction}>
+                            <input
+                              type="hidden"
+                              name="request_id"
+                              value={booking.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="rejection_reason"
+                              value="Termin je u međuvremenu zauzet."
+                            />
+
+                            <button
+                              type="submit"
+                              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                            >
+                              Odbij
+                            </button>
+                          </form>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-xl bg-app-card-alt p-4">
+                      <div className="text-app-muted">Telefon</div>
+                      <div className="mt-1 font-medium text-app-text">
+                        {booking.client_phone}
+                      </div>
                     </div>
 
-                    <p className="mt-2 text-sm text-app-muted">
-                      {booking.services?.name ?? "Nepoznata usluga"} ·{" "}
-                      {formatDateHr(booking.requested_date)} u{" "}
-                      {booking.start_time?.slice(0, 5)}
-                    </p>
-                  </div>
+                    <div className="rounded-xl bg-app-card-alt p-4">
+                      <div className="text-app-muted">Email</div>
+                      <div className="mt-1 font-medium text-app-text">
+                        {booking.client_email || "-"}
+                      </div>
+                    </div>
 
-                  <Link
-                    href={`/dashboard/online-bookings/${booking.id}`}
-                    className="rounded-xl bg-app-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                  >
-                    Otvori zahtjev
-                  </Link>
-                </div>
+                    <div className="rounded-xl bg-app-card-alt p-4">
+                      <div className="text-app-muted">Trajanje</div>
+                      <div className="mt-1 font-medium text-app-text">
+                        {booking.final_duration_minutes ??
+                          booking.duration_minutes}{" "}
+                        min
+                      </div>
+                    </div>
 
-                <div className="mt-5 grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-xl bg-app-card-alt p-4">
-                    <div className="text-app-muted">Telefon</div>
-                    <div className="mt-1 font-medium text-app-text">
-                      {booking.client_phone}
+                    <div className="rounded-xl bg-app-card-alt p-4">
+                      <div className="text-app-muted">Kreirano</div>
+                      <div className="mt-1 font-medium text-app-text">
+                        {new Date(booking.created_at).toLocaleDateString(
+                          "hr-HR",
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl bg-app-card-alt p-4">
-                    <div className="text-app-muted">Email</div>
-                    <div className="mt-1 font-medium text-app-text">
-                      {booking.client_email || "-"}
-                    </div>
-                  </div>
+                  {booking.status === "pending" && (
+                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                      <div className="font-semibold">Brze akcije koriste:</div>
 
-                  <div className="rounded-xl bg-app-card-alt p-4">
-                    <div className="text-app-muted">Trajanje</div>
-                    <div className="mt-1 font-medium text-app-text">
-                      {booking.final_duration_minutes ??
-                        booking.duration_minutes}{" "}
-                      min
-                    </div>
-                  </div>
+                      <div className="mt-2 grid gap-2 md:grid-cols-3">
+                        <div>
+                          <span className="font-medium">Djelatnik:</span>{" "}
+                          {booking.final_employee?.display_name ||
+                            booking.suggested_employee?.display_name ||
+                            "Nije odabrano"}
+                        </div>
 
-                  <div className="rounded-xl bg-app-card-alt p-4">
-                    <div className="text-app-muted">Kreirano</div>
-                    <div className="mt-1 font-medium text-app-text">
-                      {new Date(booking.created_at).toLocaleDateString("hr-HR")}
-                    </div>
-                  </div>
-                </div>
+                        <div>
+                          <span className="font-medium">Soba:</span>{" "}
+                          {booking.final_room?.name ||
+                            booking.suggested_room?.name ||
+                            "Nije odabrano"}
+                        </div>
 
-                {booking.rejection_reason ? (
-                  <div className="mt-4 rounded-xl bg-red-50 p-4 text-sm">
-                    <div className="font-medium text-red-900">
-                      Razlog odbijanja
-                    </div>
-                    <p className="mt-1 text-red-700">
-                      {booking.rejection_reason}
-                    </p>
-                  </div>
-                ) : null}
+                        <div>
+                          <span className="font-medium">Trajanje:</span>{" "}
+                          {booking.final_duration_minutes ??
+                            booking.duration_minutes}{" "}
+                          min
+                        </div>
+                      </div>
 
-                {booking.client_note ? (
-                  <div className="mt-4 rounded-xl bg-app-card-alt p-4 text-sm">
-                    <div className="font-medium text-app-text">Napomena</div>
-                    <p className="mt-1 text-app-muted">{booking.client_note}</p>
-                  </div>
-                ) : null}
-              </article>
-            ))}
+                      <p className="mt-2">
+                        Za izmjenu djelatnika, sobe ili trajanja otvori zahtjev.
+                      </p>
+                    </div>
+                  )}
+
+                  {booking.rejection_reason ? (
+                    <div className="mt-4 rounded-xl bg-red-50 p-4 text-sm">
+                      <div className="font-medium text-red-900">
+                        Razlog odbijanja
+                      </div>
+                      <p className="mt-1 text-red-700">
+                        {booking.rejection_reason}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {booking.client_note ? (
+                    <div className="mt-4 rounded-xl bg-app-card-alt p-4 text-sm">
+                      <div className="font-medium text-app-text">Napomena</div>
+                      <p className="mt-1 text-app-muted">
+                        {booking.client_note}
+                      </p>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         )}
       </div>

@@ -12,13 +12,29 @@ export async function getOnlineBookings(
     .from("online_booking_requests")
     .select(
       `
-      *,
-      services (
-        id,
-        name,
-        duration_minutes
-      )
-    `,
+  *,
+  services (
+    id,
+    name,
+    duration_minutes
+  ),
+  suggested_employee:employees!online_booking_requests_suggested_employee_id_fkey (
+    id,
+    display_name
+  ),
+  suggested_room:rooms!online_booking_requests_suggested_room_id_fkey (
+    id,
+    name
+  ),
+  final_employee:employees!online_booking_requests_final_employee_id_fkey (
+    id,
+    display_name
+  ),
+  final_room:rooms!online_booking_requests_final_room_id_fkey (
+    id,
+    name
+  )
+`,
     )
     .order("created_at", { ascending: false });
 
@@ -87,8 +103,8 @@ export async function getOnlineBookingRequestById(id: string) {
       services (
         id,
         name,
-        duration_minutes
-      )
+        duration_minutes 
+        )
     `,
     )
     .eq("id", id)
