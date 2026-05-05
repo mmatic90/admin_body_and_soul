@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Clock } from "lucide-react";
 import { getOnlineBookableServices } from "@/features/public-booking/queries";
 import BookingClient from "./booking-client";
+import CookieConsent from "@/components/cookie-consent";
+import PublicFooter from "@/components/public-footer";
 
 function groupServices(
   services: Awaited<ReturnType<typeof getOnlineBookableServices>>,
@@ -47,6 +49,8 @@ export default async function BookingPage() {
           )}
         </section>
       </div>
+      <CookieConsent />
+      <PublicFooter />
     </main>
   );
 }

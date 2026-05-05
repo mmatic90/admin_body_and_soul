@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import DashboardSidebar from "@/components/dashboard-sidebar";
 import { getCurrentUserPermissions } from "@/lib/permissions";
+import AdminFooter from "@/components/admin-footer";
 
 export default async function DashboardLayout({
   children,
@@ -22,8 +23,9 @@ export default async function DashboardLayout({
           displayName={permissions.displayName}
         />
 
-        <main className="min-w-0 flex-1 transition-all duration-200">
-          {children}
+        <main className="flex min-w-0 flex-1 flex-col transition-all duration-200">
+          <div className="flex-1">{children}</div>
+          <AdminFooter />
         </main>
       </div>
     </div>

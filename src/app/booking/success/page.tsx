@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
+import PublicFooter from "@/components/public-footer";
 
 function formatDateHr(date: string | null) {
   if (!date) return "";

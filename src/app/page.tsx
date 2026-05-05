@@ -7,6 +7,8 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
+import CookieConsent from "@/components/cookie-consent";
+import PublicFooter from "@/components/public-footer";
 
 const services = [
   {
@@ -202,6 +204,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      <CookieConsent />
+      <PublicFooter />
     </main>
   );
 }
