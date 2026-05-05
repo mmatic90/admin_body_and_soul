@@ -4,13 +4,82 @@ import { getOnlineBookableServices } from "@/features/public-booking/queries";
 import BookingClient from "./booking-client";
 import CookieConsent from "@/components/cookie-consent";
 import PublicFooter from "@/components/public-footer";
+import { createClient } from "@/lib/supabase/server";
 
-function getLang(searchParams?: { lang?: string | string[] }) {
+type Lang = "hr" | "en";
+
+type WorkingHourRow = {
+  day_of_week: number;
+  opens_at: string | null;
+  closes_at: string | null;
+  is_closed: boolean;
+};
+
+function getLang(searchParams?: { lang?: string | string[] }): Lang {
   const rawLang = Array.isArray(searchParams?.lang)
     ? searchParams?.lang[0]
     : searchParams?.lang;
 
   return rawLang === "en" ? "en" : "hr";
+}
+
+function time(value: string | null) {
+  return value ? value.slice(0, 5) : "";
+}
+
+function formatWorkingHours(
+  rows: WorkingHourRow[] | null | undefined,
+  lang: Lang,
+  fallback: string,
+) {
+  if (!rows || rows.length === 0) return fallback;
+
+  const sorted = [...rows].sort((a, b) => a.day_of_week - b.day_of_week);
+
+  const labelsHr = ["Ned", "Pon", "Uto", "Sri", "Čet", "Pet", "Sub"];
+  const labelsEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const labels = lang === "hr" ? labelsHr : labelsEn;
+
+  const openRows = sorted.filter(
+    (row) => !row.is_closed && row.opens_at && row.closes_at,
+  );
+
+  if (openRows.length === 0) return fallback;
+
+  const grouped: string[] = [];
+  let start = openRows[0];
+  let previous = openRows[0];
+
+  for (let i = 1; i <= openRows.length; i += 1) {
+    const current = openRows[i];
+
+    const sameHours =
+      current &&
+      current.opens_at === previous.opens_at &&
+      current.closes_at === previous.closes_at &&
+      current.day_of_week === previous.day_of_week + 1;
+
+    if (sameHours) {
+      previous = current;
+      continue;
+    }
+
+    const dayLabel =
+      start.day_of_week === previous.day_of_week
+        ? labels[start.day_of_week]
+        : `${labels[start.day_of_week]}-${labels[previous.day_of_week]}`;
+
+    grouped.push(
+      `${dayLabel} ${time(start.opens_at)}-${time(start.closes_at)}`,
+    );
+
+    if (current) {
+      start = current;
+      previous = current;
+    }
+  }
+
+  return grouped.join(" · ");
 }
 
 const content = {
@@ -25,7 +94,7 @@ const content = {
       "Trenutno nema usluga dostupnih za online rezervaciju. Molimo kontaktiraj salon direktno.",
     contact: "Kontakt salona",
     phone: "+385 99 328 4199",
-    workingHours: "Radno vrijeme prema narudžbi",
+    workingHoursFallback: "Radno vrijeme prema narudžbi",
     switchLabel: "English",
     switchHref: "/booking?lang=en",
   },
@@ -40,7 +109,7 @@ const content = {
       "There are currently no services available for online booking. Please contact the salon directly.",
     contact: "Salon contact",
     phone: "+385 99 328 4199",
-    workingHours: "Working hours by appointment",
+    workingHoursFallback: "Working hours by appointment",
     switchLabel: "Hrvatski",
     switchHref: "/booking?lang=hr",
   },
@@ -55,11 +124,24 @@ export default async function BookingPage({
   const lang = getLang(resolvedSearchParams);
   const t = content[lang];
 
-  const services = await getOnlineBookableServices();
+  const supabase = await createClient();
+
+  const [services, { data: workingHours }] = await Promise.all([
+    getOnlineBookableServices(),
+    supabase
+      .from("salon_working_hours")
+      .select("day_of_week, opens_at, closes_at, is_closed"),
+  ]);
+
+  const workingHoursText = formatWorkingHours(
+    workingHours,
+    lang,
+    t.workingHoursFallback,
+  );
 
   return (
     <main className="min-h-screen bg-[#f8f3ef] px-6 py-10 text-[#2f2723]">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Link
             href={`/?lang=${lang}`}
@@ -78,7 +160,7 @@ export default async function BookingPage({
         </div>
 
         <section className="mt-10 overflow-hidden rounded-[2rem] bg-white shadow-sm">
-          <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid gap-0 lg:grid-cols-[0.85fr_1.15fr]">
             <aside className="bg-[#2f2723] p-8 text-white md:p-10">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-[#eadbd2]">
                 <CalendarCheck className="h-4 w-4" />
@@ -107,12 +189,12 @@ export default async function BookingPage({
 
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5" />
-                  {t.workingHours}
+                  {workingHoursText}
                 </div>
               </div>
             </aside>
 
-            <div className="p-6 md:p-10">
+            <div className="p-6 md:p-10 lg:p-12">
               {services.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-[#d8b6a4] bg-[#f8f3ef] p-6 text-sm text-[#6f5a50]">
                   {t.noServices}

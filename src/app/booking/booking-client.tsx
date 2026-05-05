@@ -373,10 +373,11 @@ export default function BookingClient({
             </p>
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-2">
-            <section className="rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-6">
+          <div className="grid gap-8 2xl:grid-cols-[1.45fr_0.9fr]">
+            {" "}
+            <section className="rounded-[1.75rem] border border-[#eadbd2] bg-[#f8f3ef] p-6 md:p-8">
+              {" "}
               <h3 className="text-xl font-semibold">{t.dateTime}</h3>
-
               <div className="mt-5 flex items-center gap-3">
                 <button
                   type="button"
@@ -421,7 +422,6 @@ export default function BookingClient({
                   →
                 </button>
               </div>
-
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {visibleDays.map((day) => {
                   const active = selectedDate === day.value;
@@ -451,31 +451,28 @@ export default function BookingClient({
                   );
                 })}
               </div>
-
               <p className="mt-4 text-sm text-[#6f5a50]">
                 {t.selectedDate}:{" "}
                 <span className="font-semibold text-[#2f2723]">
                   {formatDateDisplay(selectedDate, lang)}
                 </span>
               </p>
-
               {loading && (
                 <p className="mt-6 text-sm text-[#6f5a50]">{t.loading}</p>
               )}
-
               {!loading && selectedDate && filteredSlots.length === 0 && (
                 <p className="mt-6 rounded-xl bg-white p-4 text-sm text-[#6f5a50]">
                   {t.noSlots}
                 </p>
               )}
-
               {!loading && filteredSlots.length > 0 && (
                 <div className="mt-8">
                   <h4 className="text-sm font-semibold text-[#6f5a50]">
                     {t.freeSlots}
                   </h4>
 
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                    {" "}
                     {filteredSlots.map((slot) => {
                       const active =
                         selectedSlot?.start_time === slot.start_time &&
@@ -487,7 +484,7 @@ export default function BookingClient({
                           key={`${slot.start_time}-${slot.employee_id}-${slot.room_id}`}
                           type="button"
                           onClick={() => setSelectedSlot(slot)}
-                          className={`rounded-xl border px-4 py-3 text-center font-semibold transition ${
+                          className={`rounded-2xl border px-5 py-4 text-center text-lg font-semibold transition ${
                             active
                               ? "border-[#2f2723] bg-[#2f2723] text-white"
                               : "border-[#eadbd2] bg-white hover:bg-[#fffaf7]"
@@ -501,14 +498,12 @@ export default function BookingClient({
                 </div>
               )}
             </section>
-
-            <section className="rounded-2xl border border-[#eadbd2] bg-white p-6">
+            <section className="rounded-[1.75rem] border border-[#eadbd2] bg-white p-6 md:p-8 2xl:sticky 2xl:top-8">
+              {" "}
               <h3 className="text-xl font-semibold">{t.contactTitle}</h3>
-
               <p className="mt-3 text-sm leading-6 text-[#6f5a50]">
                 {t.contactText}
               </p>
-
               {selectedSlot && (
                 <div className="mt-5 rounded-xl bg-[#f8f3ef] p-4 text-sm text-[#6f5a50]">
                   {t.selectedSlot}:{" "}
@@ -518,23 +513,19 @@ export default function BookingClient({
                   </span>
                 </div>
               )}
-
               <input
                 placeholder={t.fullName}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="mt-5 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
-
               <input
                 placeholder={t.phone}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="mt-4 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
-
               <p className="mt-2 text-xs text-[#6f5a50]">{t.phoneHelp}</p>
-
               <input
                 type="email"
                 placeholder={t.email}
@@ -542,7 +533,6 @@ export default function BookingClient({
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-4 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
-
               <textarea
                 placeholder={t.note}
                 value={note}
@@ -550,7 +540,6 @@ export default function BookingClient({
                 rows={4}
                 className="mt-4 w-full resize-none rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
-
               <button
                 type="button"
                 onClick={submitBooking}
@@ -566,7 +555,6 @@ export default function BookingClient({
                   t.submit
                 )}
               </button>
-
               {!selectedSlot && (
                 <p className="mt-3 text-center text-xs text-[#6f5a50]">
                   {t.chooseSlotFirst}
