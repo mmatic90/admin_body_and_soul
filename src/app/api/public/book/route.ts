@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const phone = String(body.phone ?? "").trim();
     const email = String(body.email ?? "").trim() || null;
     const note = String(body.note ?? "").trim() || null;
+    const lang = body.lang === "en" ? "en" : "hr";
 
     const slot = body.slot as Slot | null;
 
@@ -172,6 +173,7 @@ export async function POST(request: Request) {
         client_phone: phone,
         client_email: email,
         client_note: note,
+        language: lang,
 
         status: "pending",
       })

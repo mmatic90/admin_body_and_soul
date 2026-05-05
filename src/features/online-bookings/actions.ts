@@ -9,6 +9,8 @@ import {
   sendBookingRejectedEmail,
 } from "@/lib/email/booking-email";
 
+type NotificationLang = "hr" | "en";
+
 const SALON_PHONE = "+385 99 328 4199";
 
 function formatDateHr(date: string) {
@@ -53,7 +55,22 @@ function buildAcceptedSms(args: {
   serviceName: string;
   date: string;
   startTime: string;
+  lang: NotificationLang;
 }) {
+  if (args.lang === "en") {
+    return `Body & Soul
+
+Your appointment has been confirmed.
+
+Service: ${args.serviceName}
+Date: ${formatDateHr(args.date)}
+Time: ${args.startTime}
+
+If you cannot attend, please contact the salon at ${SALON_PHONE}.
+
+See you soon!`;
+  }
+
   return `Body & Soul
 
 Vaš termin je potvrđen.
@@ -72,7 +89,22 @@ function buildRejectedSms(args: {
   date: string;
   startTime: string;
   reason: string;
+  lang: NotificationLang;
 }) {
+  if (args.lang === "en") {
+    return `Body & Soul
+
+Your booking request could not be confirmed.
+
+Service: ${args.serviceName}
+Date: ${formatDateHr(args.date)}
+Time: ${args.startTime}
+
+Reason: ${args.reason}
+
+Please contact the salon at ${SALON_PHONE} to arrange another appointment.`;
+  }
+
   return `Body & Soul
 
 Vaš zahtjev za termin nije moguće potvrditi.
@@ -256,6 +288,9 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
     throw new Error(updateRequestError.message);
   }
 
+  const notificationLang: NotificationLang =
+    request.language === "en" ? "en" : "hr";
+
   const serviceName = getServiceName(request.services);
 
   if (isCroatianPhone(request.client_phone)) {
@@ -266,6 +301,7 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
           serviceName,
           date: request.requested_date,
           startTime,
+          lang: notificationLang,
         }),
       });
     } catch (error) {
@@ -292,7 +328,7 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
         serviceName,
         date: formatDateHr(request.requested_date),
         time: startTime,
-        lang: "en",
+        lang: notificationLang,
       });
     } catch (error) {
       console.error("Greška pri slanju email potvrde:", error);
@@ -348,11 +384,15 @@ export async function rejectOnlineBookingRequestAction(formData: FormData) {
   const serviceName = getServiceName(request.services);
   const startTime = String(request.start_time).slice(0, 5);
 
+  const notificationLang: NotificationLang =
+    request.language === "en" ? "en" : "hr";
+
   const smsMessage = buildRejectedSms({
     serviceName,
     date: request.requested_date,
     startTime,
     reason: rejectionReason,
+    lang: notificationLang,
   });
 
   const { error: updateError } = await supabase
@@ -387,7 +427,7 @@ export async function rejectOnlineBookingRequestAction(formData: FormData) {
             date: formatDateHr(request.requested_date),
             time: startTime,
             reason: rejectionReason,
-            lang: "hr",
+            lang: notificationLang,
           });
         } catch (emailError) {
           console.error("Greška pri slanju email odbijanja:", emailError);
@@ -402,7 +442,7 @@ export async function rejectOnlineBookingRequestAction(formData: FormData) {
         date: formatDateHr(request.requested_date),
         time: startTime,
         reason: rejectionReason,
-        lang: "en",
+        lang: notificationLang,
       });
     } catch (error) {
       console.error("Greška pri slanju email odbijanja:", error);

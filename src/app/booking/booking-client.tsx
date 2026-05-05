@@ -287,6 +287,7 @@ export default function BookingClient({
           phone,
           email,
           note,
+          lang,
         }),
       });
 
