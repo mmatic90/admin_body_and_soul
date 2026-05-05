@@ -42,7 +42,7 @@ const text = {
     fullName: "Ime i prezime *",
     phone: "Telefon *",
     phoneHelp:
-      "Broj telefona je obavezan jer ćeš putem SMS-a dobiti potvrdu ili povratnu informaciju o rezervaciji.",
+      "SMS potvrde šalju se samo na hrvatske brojeve. Ako nemaš hrvatski broj, obavezno unesi email kako bi salon mogao poslati potvrdu emailom.",
     email: "Email (opcionalno)",
     note: "Napomena (opcionalno)",
     submit: "Pošalji zahtjev za rezervaciju",
@@ -74,7 +74,7 @@ const text = {
     fullName: "Full name *",
     phone: "Phone *",
     phoneHelp:
-      "Phone number is required because you will receive confirmation or feedback about your booking request by SMS.",
+      "SMS notifications are available only for Croatian phone numbers. If you do not have a Croatian number, please enter your email so the salon can send confirmation by email.",
     email: "Email (optional)",
     note: "Note (optional)",
     submit: "Send booking request",
@@ -247,8 +247,27 @@ export default function BookingClient({
       return;
     }
 
-    if (!phone.trim()) {
-      alert(t.alerts.missingPhone);
+    const normalizedPhone = phone.trim().replace(/\s+/g, "");
+    const hasCroatianPhone =
+      normalizedPhone.startsWith("+385") ||
+      normalizedPhone.startsWith("00385") ||
+      normalizedPhone.startsWith("09");
+
+    if (!phone.trim() && !email.trim()) {
+      alert(
+        lang === "en"
+          ? "Please enter a Croatian phone number or an email address."
+          : "Unesi hrvatski broj telefona ili email adresu.",
+      );
+      return;
+    }
+
+    if (!hasCroatianPhone && !email.trim()) {
+      alert(
+        lang === "en"
+          ? "SMS confirmations are available only for Croatian numbers. Please enter your email."
+          : "SMS potvrde šalju se samo na hrvatske brojeve. Molimo unesi email.",
+      );
       return;
     }
 

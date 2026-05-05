@@ -24,9 +24,25 @@ export async function POST(request: Request) {
 
     const slot = body.slot as Slot | null;
 
-    if (!serviceId || !date || !fullName || !phone || !slot) {
+    if (!serviceId || !date || !fullName || (!phone && !email) || !slot) {
       return NextResponse.json(
-        { error: "Ime, broj telefona, usluga, datum i termin su obavezni." },
+        { error: "Ime, kontakt podatak, usluga, datum i termin su obavezni." },
+        { status: 400 },
+      );
+    }
+
+    const normalizedPhone = phone.replace(/\s+/g, "");
+    const hasCroatianPhone =
+      normalizedPhone.startsWith("+385") ||
+      normalizedPhone.startsWith("00385") ||
+      normalizedPhone.startsWith("09");
+
+    if (phone && !hasCroatianPhone && !email) {
+      return NextResponse.json(
+        {
+          error:
+            "SMS potvrde šalju se samo na hrvatske brojeve. Ako nemate hrvatski broj, unesite email.",
+        },
         { status: 400 },
       );
     }
