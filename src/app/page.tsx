@@ -12,9 +12,22 @@ import CookieConsent from "@/components/cookie-consent";
 import PublicFooter from "@/components/public-footer";
 import { createClient } from "@/lib/supabase/server";
 
+type ServiceRow = {
+  id: string;
+  name: string;
+  service_group: string | null;
+  is_online_bookable?: boolean | null;
+};
+
+type WorkingHourRow = {
+  day_of_week: number;
+  opens_at: string | null;
+  closes_at: string | null;
+  is_closed: boolean;
+};
+
 const content = {
   hr: {
-    langLabel: "HR",
     otherLangLabel: "EN",
     otherLangHref: "/?lang=en",
     badge: "Profesionalna njega u opuštajućem ambijentu",
@@ -29,13 +42,12 @@ const content = {
     secondaryCta: "Kontaktiraj salon",
     quote:
       "Mjesto gdje se profesionalna njega spaja s opuštanjem i osjećajem potpune pažnje.",
-    workingHours: "Radno vrijeme prema narudžbi",
     location: "Zagrebačka ul. 12, 52210 Rovinj",
-    phone: "099 328 4199",
+    phone: "+385 99 328 4199",
     servicesEyebrow: "Usluge",
-    servicesTitle: "Tretmani prilagođeni tvojim potrebama",
+    servicesTitle: "Najtraženiji tretmani i online rezervacije",
     servicesText:
-      "U salonu su dostupne različite usluge njege lica i tijela. Dio usluga možeš zatražiti online, dok je za ostale najbolje direktno kontaktirati salon radi dogovora i preporuke.",
+      "Izdvojili smo popularne usluge i usluge koje su dostupne za online rezervaciju. Za tretmane koji nisu ponuđeni online najbolje je direktno kontaktirati salon radi preporuke i dogovora.",
     onlineNote:
       "Napomena: online rezervacije nisu dostupne za sve usluge. Za ostale tretmane kontaktiraj salon direktno.",
     onlineBooking: "Online rezervacije",
@@ -50,9 +62,11 @@ const content = {
     contactText:
       "Za online dostupne usluge možeš poslati zahtjev za rezervaciju. Za sve ostale tretmane ili dodatna pitanja kontaktiraj salon direktno.",
     openBooking: "Otvori online rezervacije",
+    workingHoursFallback: "Radno vrijeme prema narudžbi",
+    workingHoursLabel: "Radno vrijeme",
+    bookableBadge: "Online",
   },
   en: {
-    langLabel: "EN",
     otherLangLabel: "HR",
     otherLangHref: "/?lang=hr",
     badge: "Professional care in a relaxing atmosphere",
@@ -67,13 +81,12 @@ const content = {
     secondaryCta: "Contact salon",
     quote:
       "A place where professional care meets relaxation and complete attention.",
-    workingHours: "Working hours by appointment",
     location: "Zagrebačka St. 12, 52210 Rovinj",
-    phone: "099 328 4199",
+    phone: "+385 99 328 4199",
     servicesEyebrow: "Services",
-    servicesTitle: "Treatments tailored to your needs",
+    servicesTitle: "Most requested treatments and online booking",
     servicesText:
-      "The salon offers a variety of face and body care treatments. Some services can be requested online, while for other treatments it is best to contact the salon directly for advice and booking.",
+      "We have highlighted popular services and services available for online booking. For treatments that are not offered online, please contact the salon directly for advice and booking.",
     onlineNote:
       "Note: online booking is not available for all services. For other treatments, please contact the salon directly.",
     onlineBooking: "Online booking",
@@ -88,8 +101,43 @@ const content = {
     contactText:
       "For selected online services, you can send a booking request. For all other treatments or additional questions, please contact the salon directly.",
     openBooking: "Open online booking",
+    workingHoursFallback: "Working hours by appointment",
+    workingHoursLabel: "Working hours",
+    bookableBadge: "Online",
   },
 };
+
+const serviceTranslations: Record<string, string> = {
+  "Njega lica": "Facial care",
+  Masaža: "Massage",
+  Masaže: "Massages",
+  Pedikura: "Pedicure",
+  Manikura: "Manicure",
+  Depilacija: "Waxing",
+  "Trajna epilacija laserom": "Permanent laser hair removal",
+  "Lice i obrve": "Face and eyebrows",
+  "Njega ruku i nogu": "Hand and foot care",
+  "Body program": "Body program",
+  "Body programi": "Body programs",
+  "Oblikovanje tijela": "Body shaping",
+};
+
+function translateServiceName(name: string, lang: "hr" | "en") {
+  if (lang === "hr") return name;
+
+  let translated = name;
+
+  Object.entries(serviceTranslations).forEach(([hr, en]) => {
+    translated = translated.replace(new RegExp(hr, "gi"), en);
+  });
+
+  return translated;
+}
+
+function translateServiceGroup(group: string | null, lang: "hr" | "en") {
+  if (!group || lang === "hr") return group;
+  return serviceTranslations[group] ?? group;
+}
 
 function getLang(searchParams?: { lang?: string | string[] }) {
   const rawLang = Array.isArray(searchParams?.lang)
@@ -97,6 +145,92 @@ function getLang(searchParams?: { lang?: string | string[] }) {
     : searchParams?.lang;
 
   return rawLang === "en" ? "en" : "hr";
+}
+
+function time(value: string | null) {
+  return value ? value.slice(0, 5) : "";
+}
+
+function formatWorkingHours(
+  rows: WorkingHourRow[] | null | undefined,
+  lang: "hr" | "en",
+  fallback: string,
+) {
+  if (!rows || rows.length === 0) return fallback;
+
+  const sorted = [...rows].sort((a, b) => a.day_of_week - b.day_of_week);
+
+  const labelsHr = ["Ned", "Pon", "Uto", "Sri", "Čet", "Pet", "Sub"];
+  const labelsEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const labels = lang === "hr" ? labelsHr : labelsEn;
+
+  const openRows = sorted.filter(
+    (row) => !row.is_closed && row.opens_at && row.closes_at,
+  );
+
+  if (openRows.length === 0) return fallback;
+
+  const grouped: string[] = [];
+  let start = openRows[0];
+  let previous = openRows[0];
+
+  for (let i = 1; i <= openRows.length; i += 1) {
+    const current = openRows[i];
+
+    const sameHours =
+      current &&
+      current.opens_at === previous.opens_at &&
+      current.closes_at === previous.closes_at &&
+      current.day_of_week === previous.day_of_week + 1;
+
+    if (sameHours) {
+      previous = current;
+      continue;
+    }
+
+    const dayLabel =
+      start.day_of_week === previous.day_of_week
+        ? labels[start.day_of_week]
+        : `${labels[start.day_of_week]}-${labels[previous.day_of_week]}`;
+
+    grouped.push(
+      `${dayLabel} ${time(start.opens_at)}-${time(start.closes_at)}`,
+    );
+
+    if (current) {
+      start = current;
+      previous = current;
+    }
+  }
+
+  return grouped.join(" · ");
+}
+
+function pickFeaturedServices(
+  services: ServiceRow[] | null | undefined,
+  appointments: { service_id: string | null }[] | null | undefined,
+) {
+  const rows = services ?? [];
+  const counts = new Map<string, number>();
+
+  (appointments ?? []).forEach((appointment) => {
+    if (!appointment.service_id) return;
+    counts.set(
+      appointment.service_id,
+      (counts.get(appointment.service_id) ?? 0) + 1,
+    );
+  });
+
+  return [...rows]
+    .sort((a, b) => {
+      const aBookable = a.is_online_bookable ? 1 : 0;
+      const bBookable = b.is_online_bookable ? 1 : 0;
+
+      if (aBookable !== bBookable) return bBookable - aBookable;
+
+      return (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0);
+    })
+    .slice(0, 8);
 }
 
 export default async function HomePage({
@@ -110,13 +244,33 @@ export default async function HomePage({
 
   const supabase = await createClient();
 
-  const { data: services } = await supabase
-    .from("services")
-    .select("id, name, service_group")
-    .eq("is_active", true)
-    .order("service_group", { ascending: true })
-    .order("name", { ascending: true })
-    .limit(8);
+  const [
+    { data: allServices },
+    { data: appointmentRows },
+    { data: workingHours },
+  ] = await Promise.all([
+    supabase
+      .from("services")
+      .select("id, name, service_group, is_online_bookable")
+      .eq("is_active", true),
+
+    supabase
+      .from("appointments")
+      .select("service_id")
+      .in("status", ["scheduled", "completed"])
+      .limit(500),
+
+    supabase
+      .from("salon_working_hours")
+      .select("day_of_week, opens_at, closes_at, is_closed"),
+  ]);
+
+  const featuredServices = pickFeaturedServices(allServices, appointmentRows);
+  const workingHoursText = formatWorkingHours(
+    workingHours,
+    lang,
+    t.workingHoursFallback,
+  );
 
   return (
     <main className="min-h-screen bg-[#f8f3ef] text-[#2f2723]">
@@ -229,7 +383,7 @@ export default async function HomePage({
                   <div className="mt-8 grid gap-4 text-sm text-[#eadbd2]">
                     <div className="flex items-center gap-3">
                       <Clock className="h-5 w-5" />
-                      {t.workingHours}
+                      {workingHoursText}
                     </div>
                     <div className="flex items-center gap-3">
                       <MapPin className="h-5 w-5" />
@@ -256,6 +410,16 @@ export default async function HomePage({
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl px-6 py-16">
+        <Image
+          src="/images/salon-3.jpg"
+          alt="Body & Soul ambience"
+          width={1400}
+          height={700}
+          className="h-[420px] w-full rounded-[2rem] object-cover shadow-xl"
+        />
+      </section>
+
       <section id="usluge" className="mx-auto max-w-7xl px-6 py-24">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#9b6f5b]">
@@ -268,17 +432,28 @@ export default async function HomePage({
         </div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {(services ?? []).map((service) => (
+          {featuredServices.map((service) => (
             <div
               key={service.id}
               className="rounded-3xl border border-[#eadbd2] bg-white/70 p-5 shadow-sm"
             >
-              {service.service_group ? (
-                <p className="text-xs uppercase tracking-[0.2em] text-[#9b6f5b]">
-                  {service.service_group}
-                </p>
-              ) : null}
-              <h4 className="mt-2 text-lg font-semibold">{service.name}</h4>
+              <div className="flex items-start justify-between gap-3">
+                {service.service_group ? (
+                  <p className="text-xs uppercase tracking-[0.2em] text-[#9b6f5b]">
+                    {translateServiceGroup(service.service_group, lang)}
+                  </p>
+                ) : null}
+
+                {service.is_online_bookable ? (
+                  <span className="rounded-full bg-[#2f2723] px-2.5 py-1 text-xs font-semibold text-white">
+                    {t.bookableBadge}
+                  </span>
+                ) : null}
+              </div>
+
+              <h4 className="mt-3 text-lg font-semibold">
+                {translateServiceName(service.name, lang)}
+              </h4>
             </div>
           ))}
         </div>
@@ -333,16 +508,6 @@ export default async function HomePage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-24">
-        <Image
-          src="/images/salon-3.jpg"
-          alt="Body & Soul ambience"
-          width={1400}
-          height={700}
-          className="h-[420px] w-full rounded-[2rem] object-cover shadow-xl"
-        />
-      </section>
-
       <section id="kontakt" className="mx-auto max-w-7xl px-6 py-24">
         <div className="rounded-[2rem] bg-[#2f2723] p-8 text-white md:p-12">
           <div className="grid gap-10 md:grid-cols-2">
@@ -367,7 +532,9 @@ export default async function HomePage({
               </p>
               <p className="flex items-start gap-3">
                 <Clock className="mt-0.5 h-5 w-5" />
-                <span>{t.workingHours}</span>
+                <span>
+                  {t.workingHoursLabel}: {workingHoursText}
+                </span>
               </p>
 
               <Link
