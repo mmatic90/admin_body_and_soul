@@ -139,6 +139,8 @@ export default function BookingClient({ services }: { services: Service[] }) {
   }, [selectedService]);
 
   async function submitBooking() {
+    if (submitting) return;
+
     if (!selectedService || !selectedDate || !selectedSlot) {
       alert("Odaberi uslugu, datum i termin.");
       return;
@@ -439,9 +441,16 @@ export default function BookingClient({ services }: { services: Service[] }) {
                 type="button"
                 onClick={submitBooking}
                 disabled={submitting || !selectedSlot}
-                className="mt-6 w-full rounded-xl bg-[#2f2723] py-3 font-semibold text-white disabled:opacity-50"
+                className="mt-6 flex w-full items-center justify-center rounded-xl bg-[#2f2723] py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {submitting ? "Slanje..." : "Pošalji zahtjev za rezervaciju"}
+                {submitting ? (
+                  <>
+                    Slanje zahtjeva...
+                    <span className="ml-2 animate-spin">⏳</span>
+                  </>
+                ) : (
+                  "Pošalji zahtjev za rezervaciju"
+                )}
               </button>
 
               {!selectedSlot && (

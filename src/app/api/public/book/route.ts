@@ -55,6 +55,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // Spriječi dupli klik / dupli submit:
+    // isti broj + ista usluga + isti datum + isto vrijeme unutar zadnjih 60 sekundi
+    const { data: recentDuplicateRequest, error: recentDuplicateError } =
+      await supabase
+        .from("online_booking_requests")
+        .select("id")
+        .eq("client_phone", phone)
+        .eq("service_id", serviceId)
+        .eq("requested_date", date)
+        .eq("start_time", slot.start_time)
+        .gte("created_at", new Date(Date.now() - 60 * 1000).toISOString())
+        .limit(1);
+
+    if (recentDuplicateError) {
+      return NextResponse.json(
+        { error: recentDuplicateError.message },
+        { status: 500 },
+      );
+    }
+
+    if (recentDuplicateRequest && recentDuplicateRequest.length > 0) {
+      return NextResponse.json(
+        { error: "Zahtjev je već poslan. Molimo pričekajte." },
+        { status: 400 },
+      );
+    }
+
     const { data: existingRequest, error: existingRequestError } =
       await supabase
         .from("online_booking_requests")
