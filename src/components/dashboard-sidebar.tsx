@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BellRing,
   CalendarDays,
   Clock3,
   LayoutDashboard,
@@ -28,6 +29,12 @@ const allNavItems = [
     href: "/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
+    roles: ["admin", "employee"],
+  },
+  {
+    href: "/dashboard/online-bookings",
+    label: "Online rezervacije",
+    icon: BellRing,
     roles: ["admin", "employee"],
   },
   {
