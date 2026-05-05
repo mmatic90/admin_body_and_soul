@@ -15,7 +15,9 @@ import { createClient } from "@/lib/supabase/server";
 type ServiceRow = {
   id: string;
   name: string;
+  name_en: string | null;
   service_group: string | null;
+  service_group_en: string | null;
   is_online_bookable?: boolean | null;
 };
 
@@ -107,44 +109,28 @@ const content = {
   },
 };
 
-const serviceTranslations: Record<string, string> = {
-  "Njega lica": "Facial care",
-  Masaža: "Massage",
-  Masaže: "Massages",
-  Pedikura: "Pedicure",
-  Manikura: "Manicure",
-  Depilacija: "Waxing",
-  "Trajna epilacija laserom": "Permanent laser hair removal",
-  "Lice i obrve": "Face and eyebrows",
-  "Njega ruku i nogu": "Hand and foot care",
-  "Body program": "Body program",
-  "Body programi": "Body programs",
-  "Oblikovanje tijela": "Body shaping",
-};
-
-function translateServiceName(name: string, lang: "hr" | "en") {
-  if (lang === "hr") return name;
-
-  let translated = name;
-
-  Object.entries(serviceTranslations).forEach(([hr, en]) => {
-    translated = translated.replace(new RegExp(hr, "gi"), en);
-  });
-
-  return translated;
-}
-
-function translateServiceGroup(group: string | null, lang: "hr" | "en") {
-  if (!group || lang === "hr") return group;
-  return serviceTranslations[group] ?? group;
-}
-
 function getLang(searchParams?: { lang?: string | string[] }) {
   const rawLang = Array.isArray(searchParams?.lang)
     ? searchParams?.lang[0]
     : searchParams?.lang;
 
   return rawLang === "en" ? "en" : "hr";
+}
+
+function getServiceName(service: ServiceRow, lang: "hr" | "en") {
+  if (lang === "en" && service.name_en?.trim()) {
+    return service.name_en;
+  }
+
+  return service.name;
+}
+
+function getServiceGroup(service: ServiceRow, lang: "hr" | "en") {
+  if (lang === "en" && service.service_group_en?.trim()) {
+    return service.service_group_en;
+  }
+
+  return service.service_group;
 }
 
 function time(value: string | null) {
@@ -251,7 +237,9 @@ export default async function HomePage({
   ] = await Promise.all([
     supabase
       .from("services")
-      .select("id, name, service_group, is_online_bookable")
+      .select(
+        "id, name, name_en, service_group, service_group_en, is_online_bookable",
+      )
       .eq("is_active", true),
 
     supabase
@@ -432,30 +420,34 @@ export default async function HomePage({
         </div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {featuredServices.map((service) => (
-            <div
-              key={service.id}
-              className="rounded-3xl border border-[#eadbd2] bg-white/70 p-5 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-3">
-                {service.service_group ? (
-                  <p className="text-xs uppercase tracking-[0.2em] text-[#9b6f5b]">
-                    {translateServiceGroup(service.service_group, lang)}
-                  </p>
-                ) : null}
+          {featuredServices.map((service) => {
+            const group = getServiceGroup(service, lang);
 
-                {service.is_online_bookable ? (
-                  <span className="rounded-full bg-[#2f2723] px-2.5 py-1 text-xs font-semibold text-white">
-                    {t.bookableBadge}
-                  </span>
-                ) : null}
+            return (
+              <div
+                key={service.id}
+                className="rounded-3xl border border-[#eadbd2] bg-white/70 p-5 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  {group ? (
+                    <p className="text-xs uppercase tracking-[0.2em] text-[#9b6f5b]">
+                      {group}
+                    </p>
+                  ) : null}
+
+                  {service.is_online_bookable ? (
+                    <span className="rounded-full bg-[#2f2723] px-2.5 py-1 text-xs font-semibold text-white">
+                      {t.bookableBadge}
+                    </span>
+                  ) : null}
+                </div>
+
+                <h4 className="mt-3 text-lg font-semibold">
+                  {getServiceName(service, lang)}
+                </h4>
               </div>
-
-              <h4 className="mt-3 text-lg font-semibold">
-                {translateServiceName(service.name, lang)}
-              </h4>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="mt-10 rounded-3xl border border-[#eadbd2] bg-white/70 p-6">
