@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sendInstantSms } from "@/lib/twilio/sms";
 
+const SALON_PHONE = "+385 99 328 4199";
+
 function formatDateHr(date: string) {
   const [year, month, day] = date.split("-");
   return `${day}.${month}.${year}.`;
@@ -27,6 +29,47 @@ function addMinutesToTimeString(time: string, minutesToAdd: number) {
 
 function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number) {
   return aStart < bEnd && bStart < aEnd;
+}
+
+function getServiceName(service: { name?: string | null } | null | undefined) {
+  return service?.name?.trim() || "Odabrana usluga";
+}
+
+function buildAcceptedSms(args: {
+  serviceName: string;
+  date: string;
+  startTime: string;
+}) {
+  return `Body & Soul
+
+Vaš termin je potvrđen.
+
+Usluga: ${args.serviceName}
+Datum: ${formatDateHr(args.date)}
+Vrijeme: ${args.startTime}
+
+Ako ne možete doći, molimo javite salonu na ${SALON_PHONE}.
+
+Vidimo se!`;
+}
+
+function buildRejectedSms(args: {
+  serviceName: string;
+  date: string;
+  startTime: string;
+  reason: string;
+}) {
+  return `Body & Soul
+
+Vaš zahtjev za termin nije moguće potvrditi.
+
+Usluga: ${args.serviceName}
+Datum: ${formatDateHr(args.date)}
+Vrijeme: ${args.startTime}
+
+Razlog: ${args.reason}
+
+Za dogovor novog termina kontaktirajte salon na ${SALON_PHONE}.`;
 }
 
 async function getCurrentUserId() {
@@ -71,14 +114,8 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
     .eq("id", requestId)
     .maybeSingle();
 
-  if (requestError) {
-    throw new Error(requestError.message);
-  }
-
-  if (!request) {
-    throw new Error("Zahtjev nije pronađen.");
-  }
-
+  if (requestError) throw new Error(requestError.message);
+  if (!request) throw new Error("Zahtjev nije pronađen.");
   if (request.status !== "pending") {
     throw new Error("Ovaj zahtjev više nije na čekanju.");
   }
@@ -99,9 +136,7 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
     .eq("appointment_date", request.requested_date)
     .in("status", ["scheduled", "completed"]);
 
-  if (existingError) {
-    throw new Error(existingError.message);
-  }
+  if (existingError) throw new Error(existingError.message);
 
   const conflict = (existingAppointments ?? []).some((appointment: any) => {
     const appointmentStart = timeToMinutes(appointment.start_time);
@@ -195,22 +230,16 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
     })
     .eq("id", requestId);
 
-  if (updateRequestError) {
-    throw new Error(updateRequestError.message);
-  }
+  if (updateRequestError) throw new Error(updateRequestError.message);
 
   try {
     await sendInstantSms({
       to: request.client_phone,
-      message: `Body & Soul
-
-Vaš termin je potvrđen.
-
-Usluga: ${request.services?.name ?? "Odabrana usluga"}
-Datum: ${formatDateHr(request.requested_date)}
-Vrijeme: ${startTime}
-
-Vidimo se!`,
+      message: buildAcceptedSms({
+        serviceName: getServiceName(request.services),
+        date: request.requested_date,
+        startTime,
+      }),
     });
   } catch (error) {
     console.error("Greška pri slanju SMS potvrde:", error);
@@ -250,47 +279,36 @@ export async function rejectOnlineBookingRequestAction(formData: FormData) {
     .eq("id", requestId)
     .maybeSingle();
 
-  if (requestError) {
-    throw new Error(requestError.message);
-  }
-
-  if (!request) {
-    throw new Error("Zahtjev nije pronađen.");
-  }
-
+  if (requestError) throw new Error(requestError.message);
+  if (!request) throw new Error("Zahtjev nije pronađen.");
   if (request.status !== "pending") {
     throw new Error("Ovaj zahtjev više nije na čekanju.");
   }
+
+  const smsMessage = buildRejectedSms({
+    serviceName: getServiceName(request.services),
+    date: request.requested_date,
+    startTime: String(request.start_time).slice(0, 5),
+    reason: rejectionReason,
+  });
 
   const { error: updateError } = await supabase
     .from("online_booking_requests")
     .update({
       status: "rejected",
       rejection_reason: rejectionReason,
-      rejection_message: rejectionReason,
+      rejection_message: smsMessage,
       reviewed_at: new Date().toISOString(),
       reviewed_by: userId,
     })
     .eq("id", requestId);
 
-  if (updateError) {
-    throw new Error(updateError.message);
-  }
+  if (updateError) throw new Error(updateError.message);
 
   try {
     await sendInstantSms({
       to: request.client_phone,
-      message: `Body & Soul
-
-Vaš zahtjev za termin nije moguće potvrditi.
-
-Usluga: ${request.services?.name ?? "Odabrana usluga"}
-Datum: ${formatDateHr(request.requested_date)}
-Vrijeme: ${String(request.start_time).slice(0, 5)}
-
-Razlog: ${rejectionReason}
-
-Molimo kontaktirajte salon za novi dogovor.`,
+      message: smsMessage,
     });
   } catch (error) {
     console.error("Greška pri slanju SMS odbijanja:", error);
