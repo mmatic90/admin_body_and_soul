@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import LogoutButton from "@/components/logout-button";
+import OnlineBookingBadge from "@/components/online-booking-badge";
 
 type AppRole = "admin" | "employee";
 
@@ -118,6 +119,7 @@ export default function DashboardSidebar({ role, displayName }: Props) {
 
   return (
     <>
+      {/* MOBILE HEADER */}
       <div className="sticky top-0 z-50 border-b border-app-soft bg-app-card px-4 py-3 shadow-sm lg:hidden">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -131,7 +133,6 @@ export default function DashboardSidebar({ role, displayName }: Props) {
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
             className="rounded-xl border border-app-soft bg-white p-2 text-app-text transition hover:bg-app-bg"
-            aria-label="Otvori navigaciju"
           >
             {mobileOpen ? (
               <PanelLeftClose className="h-5 w-5" />
@@ -157,7 +158,7 @@ export default function DashboardSidebar({ role, displayName }: Props) {
           </div>
         </div>
 
-        {mobileOpen ? (
+        {mobileOpen && (
           <div className="mt-4 space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -176,13 +177,19 @@ export default function DashboardSidebar({ role, displayName }: Props) {
                 >
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
+
+                  {/* ✅ BADGE (MOBILE) */}
+                  {item.href === "/dashboard/online-bookings" && (
+                    <OnlineBookingBadge />
+                  )}
                 </Link>
               );
             })}
           </div>
-        ) : null}
+        )}
       </div>
 
+      {/* DESKTOP SIDEBAR */}
       <aside
         className={`hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-r lg:border-app-soft lg:bg-app-card lg:py-6 lg:shadow-sm transition-all duration-200 ${
           desktopCollapsed ? "lg:w-24" : "lg:w-72"
@@ -206,7 +213,6 @@ export default function DashboardSidebar({ role, displayName }: Props) {
             type="button"
             onClick={toggleDesktop}
             className="rounded-xl border border-app-soft bg-white p-2 text-app-text transition hover:bg-app-bg"
-            aria-label="Sakrij ili prikaži navigaciju"
           >
             {desktopCollapsed ? (
               <PanelLeft className="h-4 w-4" />
@@ -235,7 +241,21 @@ export default function DashboardSidebar({ role, displayName }: Props) {
                 title={desktopCollapsed ? item.label : undefined}
               >
                 <Icon className="h-4 w-4 shrink-0" />
-                {!desktopCollapsed ? <span>{item.label}</span> : null}
+
+                {!desktopCollapsed ? (
+                  <>
+                    <span>{item.label}</span>
+
+                    {/* ✅ BADGE (DESKTOP NORMAL) */}
+                    {item.href === "/dashboard/online-bookings" && (
+                      <OnlineBookingBadge />
+                    )}
+                  </>
+                ) : (
+                  item.href === "/dashboard/online-bookings" && (
+                    <OnlineBookingBadge />
+                  )
+                )}
               </Link>
             );
           })}

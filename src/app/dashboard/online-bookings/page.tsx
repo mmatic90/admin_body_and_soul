@@ -1,4 +1,5 @@
 import { getPendingOnlineBookings } from "@/features/online-bookings/queries";
+import Link from "next/link";
 
 function formatDateHr(date: string) {
   const [year, month, day] = date.split("-");
@@ -56,23 +57,12 @@ export default async function OnlineBookingsPage() {
                     </p>
                   </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className="rounded-xl bg-app-accent px-4 py-2 text-sm font-semibold text-white opacity-60"
-                      disabled
-                    >
-                      Prihvati uskoro
-                    </button>
-
-                    <button
-                      type="button"
-                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 opacity-60"
-                      disabled
-                    >
-                      Odbij uskoro
-                    </button>
-                  </div>
+                  <Link
+                    href={`/dashboard/online-bookings/${booking.id}`}
+                    className="rounded-xl bg-app-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                  >
+                    Otvori zahtjev
+                  </Link>
                 </div>
 
                 <div className="mt-5 grid gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
