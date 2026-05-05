@@ -3,10 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+type Lang = "hr" | "en";
+
 type Service = {
   id: string;
   name: string;
+  name_en: string | null;
   duration_minutes: number;
+  service_group: string | null;
+  service_group_en: string | null;
 };
 
 type Slot = {
@@ -17,6 +22,87 @@ type Slot = {
   room_id: string;
   room_name: string;
 };
+
+const text = {
+  hr: {
+    min: "min",
+    back: "← Nazad na usluge",
+    chooseService: "Odaberi uslugu",
+    chooseServiceText:
+      "Prikazane su samo usluge dostupne za online rezervaciju.",
+    dateTime: "Datum i vrijeme",
+    selectedDate: "Odabrani datum",
+    loading: "Učitavanje slobodnih termina...",
+    noSlots: "Nema slobodnih termina za odabrani datum.",
+    freeSlots: "Slobodni sati",
+    contactTitle: "Kontakt podaci",
+    contactText:
+      "Unesi svoje podatke kako bi salon mogao potvrditi rezervaciju. Broj telefona je obavezan jer ćeš SMS-om dobiti potvrdu ili povratnu informaciju.",
+    selectedSlot: "Odabrani termin",
+    fullName: "Ime i prezime *",
+    phone: "Telefon *",
+    phoneHelp:
+      "Broj telefona je obavezan jer ćeš putem SMS-a dobiti potvrdu ili povratnu informaciju o rezervaciji.",
+    email: "Email (opcionalno)",
+    note: "Napomena (opcionalno)",
+    submit: "Pošalji zahtjev za rezervaciju",
+    submitting: "Slanje zahtjeva...",
+    chooseSlotFirst: "Prvo odaberi slobodan sat.",
+    serviceInfo: "Odaberi datum i početak termina. Trajanje tretmana:",
+    alerts: {
+      missingSlot: "Odaberi uslugu, datum i termin.",
+      missingName: "Ime i prezime je obavezno.",
+      missingPhone: "Broj telefona je obavezan.",
+      availabilityError: "Greška pri dohvaćanju termina.",
+      bookingError: "Greška pri rezervaciji.",
+    },
+  },
+  en: {
+    min: "min",
+    back: "← Back to services",
+    chooseService: "Choose a service",
+    chooseServiceText: "Only services available for online booking are shown.",
+    dateTime: "Date and time",
+    selectedDate: "Selected date",
+    loading: "Loading available times...",
+    noSlots: "No available times for the selected date.",
+    freeSlots: "Available times",
+    contactTitle: "Contact details",
+    contactText:
+      "Enter your details so the salon can review your request. Phone number is required because you will receive confirmation or feedback by SMS.",
+    selectedSlot: "Selected appointment",
+    fullName: "Full name *",
+    phone: "Phone *",
+    phoneHelp:
+      "Phone number is required because you will receive confirmation or feedback about your booking request by SMS.",
+    email: "Email (optional)",
+    note: "Note (optional)",
+    submit: "Send booking request",
+    submitting: "Sending request...",
+    chooseSlotFirst: "Please choose an available time first.",
+    serviceInfo: "Choose a date and start time. Treatment duration:",
+    alerts: {
+      missingSlot: "Please choose a service, date and time.",
+      missingName: "Full name is required.",
+      missingPhone: "Phone number is required.",
+      availabilityError: "Error loading available times.",
+      bookingError: "Error sending booking request.",
+    },
+  },
+};
+
+function getServiceName(service: Service, lang: Lang) {
+  if (lang === "en" && service.name_en?.trim()) return service.name_en;
+  return service.name;
+}
+
+function getServiceGroup(service: Service, lang: Lang) {
+  if (lang === "en" && service.service_group_en?.trim()) {
+    return service.service_group_en;
+  }
+
+  return service.service_group;
+}
 
 function formatDateInputValue(date: unknown) {
   if (!date) return "";
@@ -47,14 +133,17 @@ function getTodayValue() {
   return formatDateInputValue(new Date());
 }
 
-function formatDateHr(date: string) {
+function formatDateDisplay(date: string, lang: Lang) {
   if (!date) return "";
   const [year, month, day] = date.split("-");
+
+  if (lang === "en") return `${day}/${month}/${year}`;
   return `${day}.${month}.${year}.`;
 }
 
-function getVisibleDays(startDate: string, days = 4) {
+function getVisibleDays(startDate: string, lang: Lang, days = 4) {
   const base = new Date(`${startDate}T00:00:00`);
+  const locale = lang === "en" ? "en-GB" : "hr-HR";
 
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(base);
@@ -64,16 +153,23 @@ function getVisibleDays(startDate: string, days = 4) {
 
     return {
       value,
-      dayName: date.toLocaleDateString("hr-HR", { weekday: "short" }),
-      dayNumber: date.toLocaleDateString("hr-HR", { day: "2-digit" }),
-      month: date.toLocaleDateString("hr-HR", { month: "short" }),
+      dayName: date.toLocaleDateString(locale, { weekday: "short" }),
+      dayNumber: date.toLocaleDateString(locale, { day: "2-digit" }),
+      month: date.toLocaleDateString(locale, { month: "short" }),
     };
   });
 }
 
-export default function BookingClient({ services }: { services: Service[] }) {
+export default function BookingClient({
+  services,
+  lang,
+}: {
+  services: Service[];
+  lang: Lang;
+}) {
   const router = useRouter();
   const today = getTodayValue();
+  const t = text[lang];
 
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState(today);
@@ -90,7 +186,7 @@ export default function BookingClient({ services }: { services: Service[] }) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const visibleDays = getVisibleDays(calendarStartDate, 4);
+  const visibleDays = getVisibleDays(calendarStartDate, lang, 4);
 
   async function loadAvailability(service: Service, date: string) {
     setLoading(true);
@@ -112,7 +208,7 @@ export default function BookingClient({ services }: { services: Service[] }) {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Greška pri dohvaćanju termina.");
+        alert(data.error || t.alerts.availabilityError);
         return;
       }
 
@@ -125,7 +221,7 @@ export default function BookingClient({ services }: { services: Service[] }) {
       setSlots(uniqueByTime);
     } catch (error) {
       console.error(error);
-      alert("Greška pri dohvaćanju termina.");
+      alert(t.alerts.availabilityError);
     } finally {
       setLoading(false);
     }
@@ -142,17 +238,17 @@ export default function BookingClient({ services }: { services: Service[] }) {
     if (submitting) return;
 
     if (!selectedService || !selectedDate || !selectedSlot) {
-      alert("Odaberi uslugu, datum i termin.");
+      alert(t.alerts.missingSlot);
       return;
     }
 
     if (!fullName.trim()) {
-      alert("Ime i prezime je obavezno.");
+      alert(t.alerts.missingName);
       return;
     }
 
     if (!phone.trim()) {
-      alert("Broj telefona je obavezan.");
+      alert(t.alerts.missingPhone);
       return;
     }
 
@@ -178,20 +274,22 @@ export default function BookingClient({ services }: { services: Service[] }) {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Greška pri rezervaciji.");
+        alert(data.error || t.alerts.bookingError);
         return;
       }
 
       const params = new URLSearchParams({
+        lang,
+        id: data.requestId,
         date: selectedDate,
         time: selectedSlot.start_time,
-        service: selectedService.name,
+        service: getServiceName(selectedService, lang),
       });
 
       router.push(`/booking/success?${params.toString()}`);
     } catch (error) {
       console.error(error);
-      alert("Greška pri rezervaciji.");
+      alert(t.alerts.bookingError);
     } finally {
       setSubmitting(false);
     }
@@ -207,24 +305,46 @@ export default function BookingClient({ services }: { services: Service[] }) {
   return (
     <div className="space-y-10">
       {!selectedService && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {services.map((service) => (
-            <button
-              key={service.id}
-              type="button"
-              onClick={() => {
-                setSelectedService(service);
-                setSelectedDate(today);
-                setCalendarStartDate(today);
-              }}
-              className="rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-5 text-left transition hover:bg-white"
-            >
-              <div className="text-lg font-semibold">{service.name}</div>
-              <div className="mt-2 text-sm text-[#6f5a50]">
-                {service.duration_minutes} min
-              </div>
-            </button>
-          ))}
+        <div>
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold">{t.chooseService}</h2>
+            <p className="mt-2 text-sm leading-6 text-[#6f5a50]">
+              {t.chooseServiceText}
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {services.map((service) => {
+              const group = getServiceGroup(service, lang);
+
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedService(service);
+                    setSelectedDate(today);
+                    setCalendarStartDate(today);
+                  }}
+                  className="group rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-5 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                >
+                  {group ? (
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6f5b]">
+                      {group}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-2 text-lg font-semibold">
+                    {getServiceName(service, lang)}
+                  </div>
+
+                  <div className="mt-2 text-sm text-[#6f5a50]">
+                    {service.duration_minutes} {t.min}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -241,20 +361,21 @@ export default function BookingClient({ services }: { services: Service[] }) {
             }}
             className="mb-6 text-sm font-medium text-[#9b6f5b]"
           >
-            ← Nazad na usluge
+            {t.back}
           </button>
 
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold">{selectedService.name}</h2>
-            <p className="mt-2 text-sm text-[#6f5a50]">
-              Odaberi datum i početak termina. Trajanje tretmana:{" "}
-              {selectedService.duration_minutes} min.
+          <div className="mb-8 rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-5">
+            <h2 className="text-2xl font-semibold">
+              {getServiceName(selectedService, lang)}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[#6f5a50]">
+              {t.serviceInfo} {selectedService.duration_minutes} {t.min}.
             </p>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-2">
             <section className="rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-6">
-              <h3 className="text-xl font-semibold">Datum i vrijeme</h3>
+              <h3 className="text-xl font-semibold">{t.dateTime}</h3>
 
               <div className="mt-5 flex items-center gap-3">
                 <button
@@ -332,28 +453,26 @@ export default function BookingClient({ services }: { services: Service[] }) {
               </div>
 
               <p className="mt-4 text-sm text-[#6f5a50]">
-                Odabrani datum:{" "}
+                {t.selectedDate}:{" "}
                 <span className="font-semibold text-[#2f2723]">
-                  {formatDateHr(selectedDate)}
+                  {formatDateDisplay(selectedDate, lang)}
                 </span>
               </p>
 
               {loading && (
-                <p className="mt-6 text-sm text-[#6f5a50]">
-                  Učitavanje slobodnih termina...
-                </p>
+                <p className="mt-6 text-sm text-[#6f5a50]">{t.loading}</p>
               )}
 
               {!loading && selectedDate && filteredSlots.length === 0 && (
                 <p className="mt-6 rounded-xl bg-white p-4 text-sm text-[#6f5a50]">
-                  Nema slobodnih termina za odabrani datum.
+                  {t.noSlots}
                 </p>
               )}
 
               {!loading && filteredSlots.length > 0 && (
                 <div className="mt-8">
                   <h4 className="text-sm font-semibold text-[#6f5a50]">
-                    Slobodni sati
+                    {t.freeSlots}
                   </h4>
 
                   <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -384,53 +503,48 @@ export default function BookingClient({ services }: { services: Service[] }) {
             </section>
 
             <section className="rounded-2xl border border-[#eadbd2] bg-white p-6">
-              <h3 className="text-xl font-semibold">Kontakt podaci</h3>
+              <h3 className="text-xl font-semibold">{t.contactTitle}</h3>
 
               <p className="mt-3 text-sm leading-6 text-[#6f5a50]">
-                Unesi svoje podatke kako bi salon mogao potvrditi rezervaciju.
-                Broj telefona je obavezan jer ćeš SMS-om dobiti potvrdu ili
-                povratnu informaciju.
+                {t.contactText}
               </p>
 
               {selectedSlot && (
                 <div className="mt-5 rounded-xl bg-[#f8f3ef] p-4 text-sm text-[#6f5a50]">
-                  Odabrani termin:{" "}
+                  {t.selectedSlot}:{" "}
                   <span className="font-semibold text-[#2f2723]">
-                    {formatDateHr(selectedDate)} {selectedSlot.start_time} -{" "}
-                    {selectedSlot.end_time}
+                    {formatDateDisplay(selectedDate, lang)}{" "}
+                    {selectedSlot.start_time} - {selectedSlot.end_time}
                   </span>
                 </div>
               )}
 
               <input
-                placeholder="Ime i prezime *"
+                placeholder={t.fullName}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="mt-5 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
 
               <input
-                placeholder="Telefon *"
+                placeholder={t.phone}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="mt-4 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
 
-              <p className="mt-2 text-xs text-[#6f5a50]">
-                Broj telefona je obavezan jer ćeš putem SMS-a dobiti potvrdu ili
-                povratnu informaciju o rezervaciji.
-              </p>
+              <p className="mt-2 text-xs text-[#6f5a50]">{t.phoneHelp}</p>
 
               <input
                 type="email"
-                placeholder="Email (opcionalno)"
+                placeholder={t.email}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-4 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
 
               <textarea
-                placeholder="Napomena (opcionalno)"
+                placeholder={t.note}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={4}
@@ -445,17 +559,17 @@ export default function BookingClient({ services }: { services: Service[] }) {
               >
                 {submitting ? (
                   <>
-                    Slanje zahtjeva...
+                    {t.submitting}
                     <span className="ml-2 animate-spin">⏳</span>
                   </>
                 ) : (
-                  "Pošalji zahtjev za rezervaciju"
+                  t.submit
                 )}
               </button>
 
               {!selectedSlot && (
                 <p className="mt-3 text-center text-xs text-[#6f5a50]">
-                  Prvo odaberi slobodan sat.
+                  {t.chooseSlotFirst}
                 </p>
               )}
             </section>

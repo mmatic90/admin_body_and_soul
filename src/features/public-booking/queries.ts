@@ -3,8 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 export type PublicBookingService = {
   id: string;
   name: string;
+  name_en: string | null;
   duration_minutes: number;
   service_group: string | null;
+  service_group_en: string | null;
 };
 
 export async function getOnlineBookableServices(): Promise<
@@ -14,7 +16,9 @@ export async function getOnlineBookableServices(): Promise<
 
   const { data, error } = await supabase
     .from("services")
-    .select("id, name, duration_minutes, service_group")
+    .select(
+      "id, name, name_en, duration_minutes, service_group, service_group_en",
+    )
     .eq("is_active", true)
     .eq("is_online_bookable", true)
     .order("service_group", { ascending: true })
