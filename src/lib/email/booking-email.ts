@@ -1,0 +1,179 @@
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const fromEmail =
+  process.env.RESEND_FROM_EMAIL || "Body & Soul <onboarding@resend.dev>";
+
+const replyTo = process.env.RESEND_REPLY_TO || undefined;
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+const logoUrl = siteUrl ? `${siteUrl}/images/bodyandsoul-logo.png` : "";
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function layout(content: string, lang: "hr" | "en") {
+  const footerText =
+    lang === "en"
+      ? "If you have any questions, please contact the salon directly."
+      : "Za sva pitanja kontaktirajte salon direktno.";
+
+  return `
+  <div style="margin:0;padding:0;background:#f8f3ef;font-family:Arial,Helvetica,sans-serif;color:#2f2723;">
+    <div style="max-width:640px;margin:0 auto;padding:32px 16px;">
+      <div style="background:#ffffff;border-radius:28px;overflow:hidden;border:1px solid #eadbd2;box-shadow:0 12px 32px rgba(47,39,35,0.08);">
+        
+        <div style="background:#2f2723;padding:32px 28px;text-align:center;color:#ffffff;">
+          ${
+            logoUrl
+              ? `<img src="${logoUrl}" alt="Body & Soul" style="max-width:150px;height:auto;margin:0 auto 16px;display:block;" />`
+              : `<div style="font-size:26px;font-weight:700;letter-spacing:0.02em;">Body &amp; Soul</div>`
+          }
+          <div style="font-size:13px;letter-spacing:0.28em;text-transform:uppercase;color:#eadbd2;">
+            Beauty &amp; Wellness Salon
+          </div>
+        </div>
+
+        <div style="padding:34px 30px;">
+          ${content}
+        </div>
+
+        <div style="background:#f8f3ef;padding:24px 30px;text-align:center;font-size:13px;line-height:1.7;color:#6f5a50;">
+          <div style="font-weight:700;color:#2f2723;">Body &amp; Soul</div>
+          <div>Zagrebačka ul. 12, 52210 Rovinj</div>
+          <div>+385 99 328 4199</div>
+          <div style="margin-top:10px;">${footerText}</div>
+          <div style="margin-top:12px;font-size:12px;color:#9b6f5b;">
+            © ${new Date().getFullYear()} Body &amp; Soul
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+export async function sendBookingAcceptedEmail(args: {
+  to: string;
+  serviceName: string;
+  date: string;
+  time: string;
+  lang?: "hr" | "en";
+}) {
+  const lang = args.lang ?? "en";
+  const isHr = lang === "hr";
+
+  const content = isHr
+    ? `
+      <h1 style="margin:0 0 14px;font-size:28px;line-height:1.25;color:#2f2723;">Vaš termin je potvrđen ✨</h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        Hvala na rezervaciji. Vaš termin u salonu Body &amp; Soul je potvrđen.
+      </p>
+
+      <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
+        <p style="margin:0 0 10px;"><strong>Usluga:</strong> ${escapeHtml(args.serviceName)}</p>
+        <p style="margin:0 0 10px;"><strong>Datum:</strong> ${escapeHtml(args.date)}</p>
+        <p style="margin:0;"><strong>Vrijeme:</strong> ${escapeHtml(args.time)}</p>
+      </div>
+
+      <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
+        Ako niste u mogućnosti doći, molimo vas da kontaktirate salon na vrijeme.
+      </p>
+    `
+    : `
+      <h1 style="margin:0 0 14px;font-size:28px;line-height:1.25;color:#2f2723;">Your appointment is confirmed ✨</h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        Thank you for your booking. Your appointment at Body &amp; Soul has been confirmed.
+      </p>
+
+      <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
+        <p style="margin:0 0 10px;"><strong>Service:</strong> ${escapeHtml(args.serviceName)}</p>
+        <p style="margin:0 0 10px;"><strong>Date:</strong> ${escapeHtml(args.date)}</p>
+        <p style="margin:0;"><strong>Time:</strong> ${escapeHtml(args.time)}</p>
+      </div>
+
+      <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
+        If you cannot attend, please contact the salon in advance.
+      </p>
+    `;
+
+  const { error } = await resend.emails.send({
+    from: fromEmail,
+    to: [args.to],
+    subject: isHr
+      ? "Body & Soul — Termin potvrđen"
+      : "Body & Soul — Appointment confirmed",
+    html: layout(content, lang),
+    replyTo,
+  });
+
+  if (error) throw new Error(error.message);
+}
+
+export async function sendBookingRejectedEmail(args: {
+  to: string;
+  serviceName: string;
+  date: string;
+  time: string;
+  reason: string;
+  lang?: "hr" | "en";
+}) {
+  const lang = args.lang ?? "en";
+  const isHr = lang === "hr";
+
+  const content = isHr
+    ? `
+      <h1 style="margin:0 0 14px;font-size:28px;line-height:1.25;color:#2f2723;">Zahtjev nije moguće potvrditi</h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        Nažalost, vaš zahtjev za termin nije moguće potvrditi.
+      </p>
+
+      <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
+        <p style="margin:0 0 10px;"><strong>Usluga:</strong> ${escapeHtml(args.serviceName)}</p>
+        <p style="margin:0 0 10px;"><strong>Datum:</strong> ${escapeHtml(args.date)}</p>
+        <p style="margin:0 0 10px;"><strong>Vrijeme:</strong> ${escapeHtml(args.time)}</p>
+        <p style="margin:0;"><strong>Razlog:</strong> ${escapeHtml(args.reason)}</p>
+      </div>
+
+      <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
+        Za dogovor novog termina kontaktirajte salon direktno.
+      </p>
+    `
+    : `
+      <h1 style="margin:0 0 14px;font-size:28px;line-height:1.25;color:#2f2723;">Your booking request was declined</h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        Unfortunately, your appointment request could not be confirmed.
+      </p>
+
+      <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
+        <p style="margin:0 0 10px;"><strong>Service:</strong> ${escapeHtml(args.serviceName)}</p>
+        <p style="margin:0 0 10px;"><strong>Date:</strong> ${escapeHtml(args.date)}</p>
+        <p style="margin:0 0 10px;"><strong>Time:</strong> ${escapeHtml(args.time)}</p>
+        <p style="margin:0;"><strong>Reason:</strong> ${escapeHtml(args.reason)}</p>
+      </div>
+
+      <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
+        Please contact the salon directly to arrange another appointment.
+      </p>
+    `;
+
+  const { error } = await resend.emails.send({
+    from: fromEmail,
+    to: [args.to],
+    subject: isHr
+      ? "Body & Soul — Zahtjev za termin"
+      : "Body & Soul — Booking request update",
+    html: layout(content, lang),
+    replyTo,
+  });
+
+  if (error) throw new Error(error.message);
+}

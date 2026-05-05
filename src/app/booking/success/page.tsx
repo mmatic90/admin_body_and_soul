@@ -12,8 +12,6 @@ const content = {
     status: "Zahtjev poslan",
     title: "Hvala na rezervaciji ✨",
     text: "Vaš zahtjev za rezervaciju je uspješno poslan. Salon će provjeriti dostupnost termina i poslati vam potvrdu ili povratnu informaciju.",
-    smsNote:
-      "SMS potvrde šalju se samo na hrvatske brojeve. Ako nemate hrvatski broj, molimo unesite email kako bismo vam potvrdu mogli poslati emailom.",
     details: "Detalji zahtjeva",
     service: "Usluga",
     date: "Datum",
@@ -26,8 +24,6 @@ const content = {
     status: "Request sent",
     title: "Thank you for your booking ✨",
     text: "Your booking request has been sent successfully. The salon will review the appointment availability and send you a confirmation or feedback.",
-    smsNote:
-      "SMS notifications are available only for Croatian phone numbers. If you do not have a Croatian number, please enter your email so we can send the appointment confirmation by email.",
     details: "Request details",
     service: "Service",
     date: "Date",
@@ -83,10 +79,6 @@ export default function BookingSuccessPage() {
         <h1 className="mt-3 text-3xl font-semibold">{t.title}</h1>
 
         <p className="mt-4 leading-7 text-[#6f5a50]">{t.text}</p>
-
-        <div className="mt-6 rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-4 text-sm leading-6 text-[#6f5a50]">
-          {t.smsNote}
-        </div>
 
         {(date || time || service) && (
           <div className="mt-8 rounded-2xl bg-[#f8f3ef] p-5 text-left">

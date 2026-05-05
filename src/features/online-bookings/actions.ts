@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sendInstantSms } from "@/lib/twilio/sms";
+import {
+  sendBookingAcceptedEmail,
+  sendBookingRejectedEmail,
+} from "@/lib/email/booking-email";
 
 const SALON_PHONE = "+385 99 328 4199";
 
@@ -33,6 +37,16 @@ function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number) {
 
 function getServiceName(service: { name?: string | null } | null | undefined) {
   return service?.name?.trim() || "Odabrana usluga";
+}
+
+function isCroatianPhone(phone: string | null | undefined) {
+  const normalized = String(phone ?? "").replace(/\s+/g, "");
+
+  return (
+    normalized.startsWith("+385") ||
+    normalized.startsWith("00385") ||
+    normalized.startsWith("09")
+  );
 }
 
 function buildAcceptedSms(args: {
@@ -114,8 +128,14 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
     .eq("id", requestId)
     .maybeSingle();
 
-  if (requestError) throw new Error(requestError.message);
-  if (!request) throw new Error("Zahtjev nije pronađen.");
+  if (requestError) {
+    throw new Error(requestError.message);
+  }
+
+  if (!request) {
+    throw new Error("Zahtjev nije pronađen.");
+  }
+
   if (request.status !== "pending") {
     throw new Error("Ovaj zahtjev više nije na čekanju.");
   }
@@ -136,7 +156,9 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
     .eq("appointment_date", request.requested_date)
     .in("status", ["scheduled", "completed"]);
 
-  if (existingError) throw new Error(existingError.message);
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
 
   const conflict = (existingAppointments ?? []).some((appointment: any) => {
     const appointmentStart = timeToMinutes(appointment.start_time);
@@ -230,19 +252,51 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
     })
     .eq("id", requestId);
 
-  if (updateRequestError) throw new Error(updateRequestError.message);
+  if (updateRequestError) {
+    throw new Error(updateRequestError.message);
+  }
 
-  try {
-    await sendInstantSms({
-      to: request.client_phone,
-      message: buildAcceptedSms({
-        serviceName: getServiceName(request.services),
-        date: request.requested_date,
-        startTime,
-      }),
-    });
-  } catch (error) {
-    console.error("Greška pri slanju SMS potvrde:", error);
+  const serviceName = getServiceName(request.services);
+
+  if (isCroatianPhone(request.client_phone)) {
+    try {
+      await sendInstantSms({
+        to: request.client_phone,
+        message: buildAcceptedSms({
+          serviceName,
+          date: request.requested_date,
+          startTime,
+        }),
+      });
+    } catch (error) {
+      console.error("Greška pri slanju SMS potvrde:", error);
+
+      if (request.client_email) {
+        try {
+          await sendBookingAcceptedEmail({
+            to: request.client_email,
+            serviceName,
+            date: formatDateHr(request.requested_date),
+            time: startTime,
+            lang: "hr",
+          });
+        } catch (emailError) {
+          console.error("Greška pri slanju email potvrde:", emailError);
+        }
+      }
+    }
+  } else if (request.client_email) {
+    try {
+      await sendBookingAcceptedEmail({
+        to: request.client_email,
+        serviceName,
+        date: formatDateHr(request.requested_date),
+        time: startTime,
+        lang: "en",
+      });
+    } catch (error) {
+      console.error("Greška pri slanju email potvrde:", error);
+    }
   }
 
   revalidatePath("/dashboard");
@@ -279,16 +333,25 @@ export async function rejectOnlineBookingRequestAction(formData: FormData) {
     .eq("id", requestId)
     .maybeSingle();
 
-  if (requestError) throw new Error(requestError.message);
-  if (!request) throw new Error("Zahtjev nije pronađen.");
+  if (requestError) {
+    throw new Error(requestError.message);
+  }
+
+  if (!request) {
+    throw new Error("Zahtjev nije pronađen.");
+  }
+
   if (request.status !== "pending") {
     throw new Error("Ovaj zahtjev više nije na čekanju.");
   }
 
+  const serviceName = getServiceName(request.services);
+  const startTime = String(request.start_time).slice(0, 5);
+
   const smsMessage = buildRejectedSms({
-    serviceName: getServiceName(request.services),
+    serviceName,
     date: request.requested_date,
-    startTime: String(request.start_time).slice(0, 5),
+    startTime,
     reason: rejectionReason,
   });
 
@@ -303,15 +366,47 @@ export async function rejectOnlineBookingRequestAction(formData: FormData) {
     })
     .eq("id", requestId);
 
-  if (updateError) throw new Error(updateError.message);
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
 
-  try {
-    await sendInstantSms({
-      to: request.client_phone,
-      message: smsMessage,
-    });
-  } catch (error) {
-    console.error("Greška pri slanju SMS odbijanja:", error);
+  if (isCroatianPhone(request.client_phone)) {
+    try {
+      await sendInstantSms({
+        to: request.client_phone,
+        message: smsMessage,
+      });
+    } catch (error) {
+      console.error("Greška pri slanju SMS odbijanja:", error);
+
+      if (request.client_email) {
+        try {
+          await sendBookingRejectedEmail({
+            to: request.client_email,
+            serviceName,
+            date: formatDateHr(request.requested_date),
+            time: startTime,
+            reason: rejectionReason,
+            lang: "hr",
+          });
+        } catch (emailError) {
+          console.error("Greška pri slanju email odbijanja:", emailError);
+        }
+      }
+    }
+  } else if (request.client_email) {
+    try {
+      await sendBookingRejectedEmail({
+        to: request.client_email,
+        serviceName,
+        date: formatDateHr(request.requested_date),
+        time: startTime,
+        reason: rejectionReason,
+        lang: "en",
+      });
+    } catch (error) {
+      console.error("Greška pri slanju email odbijanja:", error);
+    }
   }
 
   revalidatePath("/dashboard");
