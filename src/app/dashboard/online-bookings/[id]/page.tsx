@@ -16,10 +16,12 @@ function formatDateHr(date: string) {
 }
 
 const rejectionReasons = [
+  "Termin je u međuvremenu zauzet.",
   "Termin više nije dostupan.",
   "Odabrana usluga nije dostupna u tom terminu.",
   "Potreban je drugi termin zbog rasporeda djelatnika.",
   "Odabrani termin nije moguće organizirati zbog zauzetosti sobe.",
+  "Molimo kontaktirajte salon radi dogovora.",
 ];
 
 export default async function OnlineBookingDetailsPage({
