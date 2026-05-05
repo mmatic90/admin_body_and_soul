@@ -8,6 +8,7 @@ import {
   getOnlineBookings,
   type OnlineBookingStatus,
 } from "@/features/online-bookings/queries";
+import AutoRefresh from "@/components/auto-refresh";
 
 function formatDateHr(date: string) {
   const [year, month, day] = date.split("-");
@@ -81,6 +82,7 @@ export default async function OnlineBookingsPage({
 
   return (
     <main className="min-h-screen bg-app-bg p-4 md:p-6 lg:p-8">
+      <AutoRefresh />
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
           <p className="text-sm font-medium text-app-muted">
