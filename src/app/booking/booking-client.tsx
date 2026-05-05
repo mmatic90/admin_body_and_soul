@@ -373,7 +373,7 @@ export default function BookingClient({
             </p>
           </div>
 
-          <div className="grid gap-8 2xl:grid-cols-[1.45fr_0.9fr]">
+          <div className="grid gap-8">
             {" "}
             <section className="rounded-[1.75rem] border border-[#eadbd2] bg-[#f8f3ef] p-6 md:p-8">
               {" "}
@@ -471,7 +471,7 @@ export default function BookingClient({
                     {t.freeSlots}
                   </h4>
 
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                  <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(96px,1fr))] gap-3">
                     {" "}
                     {filteredSlots.map((slot) => {
                       const active =
@@ -484,7 +484,7 @@ export default function BookingClient({
                           key={`${slot.start_time}-${slot.employee_id}-${slot.room_id}`}
                           type="button"
                           onClick={() => setSelectedSlot(slot)}
-                          className={`rounded-2xl border px-5 py-4 text-center text-lg font-semibold transition ${
+                          className={`min-w-0 rounded-2xl border px-3 py-4 text-center text-base font-semibold leading-none transition sm:text-lg ${
                             active
                               ? "border-[#2f2723] bg-[#2f2723] text-white"
                               : "border-[#eadbd2] bg-white hover:bg-[#fffaf7]"
