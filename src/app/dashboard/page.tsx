@@ -15,10 +15,13 @@ import {
   BarChart3,
   UserCog,
 } from "lucide-react";
+import DashboardOverviewWidget from "@/components/dashboard-overview-widget";
+import { getDashboardOverviewStats } from "@/features/dashboard/overview-queries";
 
 export default async function DashboardPage() {
   const permissions = await requireDashboardUser();
   const overdueAppointments = await getOverdueScheduledAppointments();
+  const overviewStats = await getDashboardOverviewStats();
 
   return (
     <main className="min-h-screen bg-app-bg p-4 md:p-6 lg:p-8">
@@ -32,6 +35,11 @@ export default async function DashboardPage() {
             klijentima.
           </p>
         </div>
+        <DashboardOverviewWidget
+          pendingOnlineCount={overviewStats.pendingOnlineCount}
+          todayAppointmentsCount={overviewStats.todayAppointmentsCount}
+          tomorrowAppointmentsCount={overviewStats.tomorrowAppointmentsCount}
+        />
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <DashboardLinkCard
