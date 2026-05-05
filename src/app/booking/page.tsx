@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Clock } from "lucide-react";
 import { getOnlineBookableServices } from "@/features/public-booking/queries";
+import BookingClient from "./booking-client";
 
 function groupServices(
   services: Awaited<ReturnType<typeof getOnlineBookableServices>>,
@@ -42,39 +43,7 @@ export default async function BookingPage() {
               označi barem jednu uslugu kao dostupnu za online rezervacije.
             </div>
           ) : (
-            <div className="mt-10 space-y-10">
-              {Object.entries(groupedServices).map(([groupName, items]) => (
-                <div key={groupName}>
-                  <h2 className="text-xl font-semibold">{groupName}</h2>
-
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    {items.map((service) => (
-                      <div
-                        key={service.id}
-                        className="rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-5"
-                      >
-                        <h3 className="text-lg font-semibold">
-                          {service.name}
-                        </h3>
-
-                        <div className="mt-3 flex items-center gap-2 text-sm text-[#6f5a50]">
-                          <Clock className="h-4 w-4" />
-                          {service.duration_minutes} min
-                        </div>
-
-                        <button
-                          type="button"
-                          className="mt-5 rounded-full bg-[#2f2723] px-5 py-2.5 text-sm font-semibold text-white opacity-60"
-                          disabled
-                        >
-                          Odaberi uslugu
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <BookingClient services={services} />
           )}
         </section>
       </div>
