@@ -1,10 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSmartAvailability } from "@/features/availability/smart-availability";
 
-export async function getPendingOnlineBookings() {
+export type OnlineBookingStatus = "all" | "pending" | "accepted" | "rejected";
+
+export async function getOnlineBookings(
+  status: OnlineBookingStatus = "pending",
+) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("online_booking_requests")
     .select(
       `
@@ -16,14 +20,60 @@ export async function getPendingOnlineBookings() {
       )
     `,
     )
-    .eq("status", "pending")
     .order("created_at", { ascending: false });
+
+  if (status !== "all") {
+    query = query.eq("status", status);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(error.message);
   }
 
   return data ?? [];
+}
+
+export async function getPendingOnlineBookings() {
+  return getOnlineBookings("pending");
+}
+
+export async function getOnlineBookingCounts() {
+  const supabase = await createClient();
+
+  const [
+    { count: all },
+    { count: pending },
+    { count: accepted },
+    { count: rejected },
+  ] = await Promise.all([
+    supabase
+      .from("online_booking_requests")
+      .select("id", { count: "exact", head: true }),
+
+    supabase
+      .from("online_booking_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+
+    supabase
+      .from("online_booking_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "accepted"),
+
+    supabase
+      .from("online_booking_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "rejected"),
+  ]);
+
+  return {
+    all: all ?? 0,
+    pending: pending ?? 0,
+    accepted: accepted ?? 0,
+    rejected: rejected ?? 0,
+  };
 }
 
 export async function getOnlineBookingRequestById(id: string) {

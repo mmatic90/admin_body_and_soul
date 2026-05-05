@@ -1,13 +1,79 @@
-import { getPendingOnlineBookings } from "@/features/online-bookings/queries";
 import Link from "next/link";
+import {
+  getOnlineBookingCounts,
+  getOnlineBookings,
+  type OnlineBookingStatus,
+} from "@/features/online-bookings/queries";
 
 function formatDateHr(date: string) {
   const [year, month, day] = date.split("-");
   return `${day}.${month}.${year}.`;
 }
 
-export default async function OnlineBookingsPage() {
-  const bookings = await getPendingOnlineBookings();
+function getStatusFromSearchParams(searchParams?: {
+  status?: string | string[];
+}): OnlineBookingStatus {
+  const rawStatus = Array.isArray(searchParams?.status)
+    ? searchParams?.status[0]
+    : searchParams?.status;
+
+  if (
+    rawStatus === "all" ||
+    rawStatus === "pending" ||
+    rawStatus === "accepted" ||
+    rawStatus === "rejected"
+  ) {
+    return rawStatus;
+  }
+
+  return "pending";
+}
+
+function statusLabel(status: string) {
+  if (status === "pending") return "Na čekanju";
+  if (status === "accepted") return "Prihvaćeno";
+  if (status === "rejected") return "Odbijeno";
+  return status;
+}
+
+function statusClass(status: string) {
+  if (status === "pending") {
+    return "border-amber-200 bg-amber-100 text-amber-800";
+  }
+
+  if (status === "accepted") {
+    return "border-emerald-200 bg-emerald-100 text-emerald-800";
+  }
+
+  if (status === "rejected") {
+    return "border-red-200 bg-red-100 text-red-800";
+  }
+
+  return "border-app-soft bg-app-card-alt text-app-muted";
+}
+
+const filters: {
+  value: OnlineBookingStatus;
+  label: string;
+}[] = [
+  { value: "pending", label: "Na čekanju" },
+  { value: "accepted", label: "Prihvaćeno" },
+  { value: "rejected", label: "Odbijeno" },
+  { value: "all", label: "Sve" },
+];
+
+export default async function OnlineBookingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ status?: string | string[] }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const activeStatus = getStatusFromSearchParams(resolvedSearchParams);
+
+  const [bookings, counts] = await Promise.all([
+    getOnlineBookings(activeStatus),
+    getOnlineBookingCounts(),
+  ]);
 
   return (
     <main className="min-h-screen bg-app-bg p-4 md:p-6 lg:p-8">
@@ -17,19 +83,54 @@ export default async function OnlineBookingsPage() {
             Zahtjevi s javne web stranice
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold text-app-text">
-            Online rezervacije
-          </h1>
+          <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-app-text">
+                Online rezervacije
+              </h1>
 
-          <p className="mt-2 text-app-muted">
-            Ovdje se prikazuju novi zahtjevi koje admin može provjeriti,
-            prihvatiti ili odbiti.
-          </p>
+              <p className="mt-2 text-app-muted">
+                Pregledaj nove, prihvaćene i odbijene zahtjeve za online
+                rezervaciju.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-app-soft bg-app-card-alt px-5 py-3 text-sm text-app-muted">
+              Novo na čekanju:{" "}
+              <span className="font-bold text-app-text">{counts.pending}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-app-soft bg-app-card p-4 shadow-sm">
+          <div className="flex flex-wrap gap-2">
+            {filters.map((filter) => {
+              const active = activeStatus === filter.value;
+              const count = counts[filter.value];
+
+              return (
+                <Link
+                  key={filter.value}
+                  href={`/dashboard/online-bookings?status=${filter.value}`}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    active
+                      ? "bg-app-accent text-white shadow-sm"
+                      : "bg-app-card-alt text-app-text hover:bg-app-bg"
+                  }`}
+                >
+                  {filter.label}{" "}
+                  <span className={active ? "text-white" : "text-app-muted"}>
+                    ({count})
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
         {bookings.length === 0 ? (
           <div className="rounded-2xl border border-app-soft bg-app-card p-8 text-center text-app-muted">
-            Trenutno nema novih online rezervacija.
+            Nema zahtjeva za odabrani filter.
           </div>
         ) : (
           <div className="space-y-4">
@@ -45,8 +146,12 @@ export default async function OnlineBookingsPage() {
                         {booking.client_full_name}
                       </h2>
 
-                      <span className="rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                        Na čekanju
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass(
+                          booking.status,
+                        )}`}
+                      >
+                        {statusLabel(booking.status)}
                       </span>
                     </div>
 
@@ -90,12 +195,23 @@ export default async function OnlineBookingsPage() {
                   </div>
 
                   <div className="rounded-xl bg-app-card-alt p-4">
-                    <div className="text-app-muted">Status</div>
+                    <div className="text-app-muted">Kreirano</div>
                     <div className="mt-1 font-medium text-app-text">
-                      {booking.status}
+                      {new Date(booking.created_at).toLocaleDateString("hr-HR")}
                     </div>
                   </div>
                 </div>
+
+                {booking.rejection_reason ? (
+                  <div className="mt-4 rounded-xl bg-red-50 p-4 text-sm">
+                    <div className="font-medium text-red-900">
+                      Razlog odbijanja
+                    </div>
+                    <p className="mt-1 text-red-700">
+                      {booking.rejection_reason}
+                    </p>
+                  </div>
+                ) : null}
 
                 {booking.client_note ? (
                   <div className="mt-4 rounded-xl bg-app-card-alt p-4 text-sm">
