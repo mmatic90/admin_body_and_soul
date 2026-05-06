@@ -25,6 +25,7 @@ function getStatusFromSearchParams(searchParams?: {
   if (
     rawStatus === "today" ||
     rawStatus === "all" ||
+    rawStatus === "archive" ||
     rawStatus === "pending" ||
     rawStatus === "accepted" ||
     rawStatus === "rejected"
@@ -67,6 +68,7 @@ const filters: {
   { value: "accepted", label: "Prihvaćeno" },
   { value: "rejected", label: "Odbijeno" },
   { value: "all", label: "Sve" },
+  { value: "archive", label: "Arhiva" },
 ];
 
 export default async function OnlineBookingsPage({
