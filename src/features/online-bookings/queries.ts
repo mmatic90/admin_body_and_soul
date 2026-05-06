@@ -1,7 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSmartAvailability } from "@/features/availability/smart-availability";
 
-export type OnlineBookingStatus = "all" | "pending" | "accepted" | "rejected";
+export type OnlineBookingStatus =
+  | "today"
+  | "all"
+  | "pending"
+  | "accepted"
+  | "rejected";
+
+function getTodayValue() {
+  const date = new Date();
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 
 export async function getOnlineBookings(
   status: OnlineBookingStatus = "pending",
@@ -38,7 +53,9 @@ export async function getOnlineBookings(
     )
     .order("created_at", { ascending: false });
 
-  if (status !== "all") {
+  if (status === "today") {
+    query = query.eq("requested_date", getTodayValue());
+  } else if (status !== "all") {
     query = query.eq("status", status);
   }
 
@@ -57,12 +74,14 @@ export async function getPendingOnlineBookings() {
 
 export async function getOnlineBookingCounts() {
   const supabase = await createClient();
+  const todayValue = getTodayValue();
 
   const [
     { count: all },
     { count: pending },
     { count: accepted },
     { count: rejected },
+    { count: today },
   ] = await Promise.all([
     supabase
       .from("online_booking_requests")
@@ -82,9 +101,14 @@ export async function getOnlineBookingCounts() {
       .from("online_booking_requests")
       .select("id", { count: "exact", head: true })
       .eq("status", "rejected"),
+    supabase
+      .from("online_booking_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("requested_date", todayValue),
   ]);
 
   return {
+    today: today ?? 0,
     all: all ?? 0,
     pending: pending ?? 0,
     accepted: accepted ?? 0,

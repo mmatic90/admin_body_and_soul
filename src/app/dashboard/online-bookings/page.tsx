@@ -23,6 +23,7 @@ function getStatusFromSearchParams(searchParams?: {
     : searchParams?.status;
 
   if (
+    rawStatus === "today" ||
     rawStatus === "all" ||
     rawStatus === "pending" ||
     rawStatus === "accepted" ||
@@ -31,7 +32,7 @@ function getStatusFromSearchParams(searchParams?: {
     return rawStatus;
   }
 
-  return "pending";
+  return "today";
 }
 
 function statusLabel(status: string) {
@@ -61,6 +62,7 @@ const filters: {
   value: OnlineBookingStatus;
   label: string;
 }[] = [
+  { value: "today", label: "Danas" },
   { value: "pending", label: "Na čekanju" },
   { value: "accepted", label: "Prihvaćeno" },
   { value: "rejected", label: "Odbijeno" },
@@ -102,8 +104,8 @@ export default async function OnlineBookingsPage({
             </div>
 
             <div className="rounded-2xl border border-app-soft bg-app-card-alt px-5 py-3 text-sm text-app-muted">
-              Novo na čekanju:{" "}
-              <span className="font-bold text-app-text">{counts.pending}</span>
+              Danas:{" "}
+              <span className="font-bold text-app-text">{counts.today}</span>
             </div>
           </div>
         </div>
