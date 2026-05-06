@@ -1,27 +1,49 @@
 import Link from "next/link";
-import { BellRing, CalendarCheck, CalendarDays } from "lucide-react";
+import {
+  BellRing,
+  CalendarCheck,
+  CalendarDays,
+  CheckCircle2,
+  Percent,
+  UserX,
+} from "lucide-react";
 
 type Props = {
   pendingOnlineCount: number;
+  todayOnlineCount: number;
   todayAppointmentsCount: number;
   tomorrowAppointmentsCount: number;
+  completedThisMonthCount: number;
+  noShowThisMonthCount: number;
+  onlineConversionRate: number;
 };
 
 export default function DashboardOverviewWidget({
   pendingOnlineCount,
+  todayOnlineCount,
   todayAppointmentsCount,
   tomorrowAppointmentsCount,
+  completedThisMonthCount,
+  noShowThisMonthCount,
+  onlineConversionRate,
 }: Props) {
   const cards = [
     {
-      title: "Online zahtjevi",
+      title: "Online na čekanju",
       value: pendingOnlineCount,
       description:
         pendingOnlineCount > 0
           ? "Novi zahtjevi čekaju pregled."
           : "Nema novih zahtjeva.",
-      href: "/dashboard/online-bookings",
+      href: "/dashboard/online-bookings?status=pending",
       icon: BellRing,
+    },
+    {
+      title: "Online danas",
+      value: todayOnlineCount,
+      description: "Online zahtjevi za današnji datum.",
+      href: "/dashboard/online-bookings?status=today",
+      icon: CalendarDays,
     },
     {
       title: "Termini danas",
@@ -37,10 +59,31 @@ export default function DashboardOverviewWidget({
       href: "/dashboard/calendar/time-grid",
       icon: CalendarDays,
     },
+    {
+      title: "Odrađeno ovaj mjesec",
+      value: completedThisMonthCount,
+      description: "Broj završenih termina u tekućem mjesecu.",
+      href: "/dashboard/reports",
+      icon: CheckCircle2,
+    },
+    {
+      title: "No-show ovaj mjesec",
+      value: noShowThisMonthCount,
+      description: "Klijenti koji se nisu pojavili.",
+      href: "/dashboard/reports",
+      icon: UserX,
+    },
+    {
+      title: "Online conversion",
+      value: `${onlineConversionRate}%`,
+      description: "Postotak prihvaćenih online zahtjeva ovaj mjesec.",
+      href: "/dashboard/online-bookings?status=all",
+      icon: Percent,
+    },
   ];
 
   return (
-    <section className="grid gap-4 md:grid-cols-3">
+    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => {
         const Icon = card.icon;
 

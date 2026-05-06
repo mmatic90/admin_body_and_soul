@@ -37,8 +37,12 @@ export default async function DashboardPage() {
         </div>
         <DashboardOverviewWidget
           pendingOnlineCount={overviewStats.pendingOnlineCount}
+          todayOnlineCount={overviewStats.todayOnlineCount}
           todayAppointmentsCount={overviewStats.todayAppointmentsCount}
           tomorrowAppointmentsCount={overviewStats.tomorrowAppointmentsCount}
+          completedThisMonthCount={overviewStats.completedThisMonthCount}
+          noShowThisMonthCount={overviewStats.noShowThisMonthCount}
+          onlineConversionRate={overviewStats.onlineConversionRate}
         />
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
