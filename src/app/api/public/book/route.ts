@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 type Slot = {
   start_time: string;
@@ -11,6 +12,29 @@ type Slot = {
 };
 
 export async function POST(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+
+  const ip =
+    forwardedFor?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+
+  const rateLimit = await checkRateLimit({
+    ip,
+    endpoint: "public-booking",
+    limit: 5,
+    windowMinutes: 10,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      {
+        error:
+          "Previše pokušaja rezervacije. Molimo pokušajte ponovno za nekoliko minuta.",
+      },
+      { status: 429 },
+    );
+  }
   try {
     const body = await request.json();
 
