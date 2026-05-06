@@ -29,7 +29,6 @@ function layout(content: string, lang: "hr" | "en") {
   <div style="margin:0;padding:0;background:#f8f3ef;font-family:Arial,Helvetica,sans-serif;color:#2f2723;">
     <div style="max-width:640px;margin:0 auto;padding:32px 16px;">
       <div style="background:#ffffff;border-radius:28px;overflow:hidden;border:1px solid #eadbd2;box-shadow:0 12px 32px rgba(47,39,35,0.08);">
-        
         <div style="background:#2f2723;padding:32px 28px;text-align:center;color:#ffffff;">
           ${
             logoUrl
@@ -54,7 +53,6 @@ function layout(content: string, lang: "hr" | "en") {
             © ${new Date().getFullYear()} Body &amp; Soul
           </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -77,13 +75,11 @@ export async function sendBookingAcceptedEmail(args: {
       <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
         Hvala na rezervaciji. Vaš termin u salonu Body &amp; Soul je potvrđen.
       </p>
-
       <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
         <p style="margin:0 0 10px;"><strong>Usluga:</strong> ${escapeHtml(args.serviceName)}</p>
         <p style="margin:0 0 10px;"><strong>Datum:</strong> ${escapeHtml(args.date)}</p>
         <p style="margin:0;"><strong>Vrijeme:</strong> ${escapeHtml(args.time)}</p>
       </div>
-
       <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
         Ako niste u mogućnosti doći, molimo vas da kontaktirate salon na vrijeme.
       </p>
@@ -93,13 +89,11 @@ export async function sendBookingAcceptedEmail(args: {
       <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
         Thank you for your booking. Your appointment at Body &amp; Soul has been confirmed.
       </p>
-
       <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
         <p style="margin:0 0 10px;"><strong>Service:</strong> ${escapeHtml(args.serviceName)}</p>
         <p style="margin:0 0 10px;"><strong>Date:</strong> ${escapeHtml(args.date)}</p>
         <p style="margin:0;"><strong>Time:</strong> ${escapeHtml(args.time)}</p>
       </div>
-
       <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
         If you cannot attend, please contact the salon in advance.
       </p>
@@ -135,14 +129,12 @@ export async function sendBookingRejectedEmail(args: {
       <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
         Nažalost, vaš zahtjev za termin nije moguće potvrditi.
       </p>
-
       <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
         <p style="margin:0 0 10px;"><strong>Usluga:</strong> ${escapeHtml(args.serviceName)}</p>
         <p style="margin:0 0 10px;"><strong>Datum:</strong> ${escapeHtml(args.date)}</p>
         <p style="margin:0 0 10px;"><strong>Vrijeme:</strong> ${escapeHtml(args.time)}</p>
         <p style="margin:0;"><strong>Razlog:</strong> ${escapeHtml(args.reason)}</p>
       </div>
-
       <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
         Za dogovor novog termina kontaktirajte salon direktno.
       </p>
@@ -152,14 +144,12 @@ export async function sendBookingRejectedEmail(args: {
       <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
         Unfortunately, your appointment request could not be confirmed.
       </p>
-
       <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
         <p style="margin:0 0 10px;"><strong>Service:</strong> ${escapeHtml(args.serviceName)}</p>
         <p style="margin:0 0 10px;"><strong>Date:</strong> ${escapeHtml(args.date)}</p>
         <p style="margin:0 0 10px;"><strong>Time:</strong> ${escapeHtml(args.time)}</p>
         <p style="margin:0;"><strong>Reason:</strong> ${escapeHtml(args.reason)}</p>
       </div>
-
       <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
         Please contact the salon directly to arrange another appointment.
       </p>
@@ -171,6 +161,113 @@ export async function sendBookingRejectedEmail(args: {
     subject: isHr
       ? "Body & Soul — Zahtjev za termin"
       : "Body & Soul — Booking request update",
+    html: layout(content, lang),
+    replyTo,
+  });
+
+  if (error) throw new Error(error.message);
+}
+
+export async function sendAppointmentReminderEmail(args: {
+  to: string;
+  clientName: string;
+  date: string;
+  time: string;
+  serviceName?: string | null;
+  lang?: "hr" | "en";
+}) {
+  const lang = args.lang ?? "en";
+  const isHr = lang === "hr";
+  const serviceName = args.serviceName?.trim();
+
+  const content = isHr
+    ? `
+      <h1 style="margin:0 0 14px;font-size:28px;line-height:1.25;color:#2f2723;">Podsjetnik za vaš termin</h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        Bok ${escapeHtml(args.clientName)}, podsjećamo vas na termin u salonu Body &amp; Soul.
+      </p>
+      <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
+        ${serviceName ? `<p style="margin:0 0 10px;"><strong>Usluga:</strong> ${escapeHtml(serviceName)}</p>` : ""}
+        <p style="margin:0 0 10px;"><strong>Datum:</strong> ${escapeHtml(args.date)}</p>
+        <p style="margin:0;"><strong>Vrijeme:</strong> ${escapeHtml(args.time)}</p>
+      </div>
+      <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
+        Ako niste u mogućnosti doći, molimo vas da kontaktirate salon na vrijeme.
+      </p>
+    `
+    : `
+      <h1 style="margin:0 0 14px;font-size:28px;line-height:1.25;color:#2f2723;">Appointment reminder</h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        Hi ${escapeHtml(args.clientName)}, this is a reminder for your appointment at Body &amp; Soul.
+      </p>
+      <div style="margin:24px 0;padding:22px;border-radius:20px;background:#f8f3ef;border:1px solid #eadbd2;">
+        ${serviceName ? `<p style="margin:0 0 10px;"><strong>Service:</strong> ${escapeHtml(serviceName)}</p>` : ""}
+        <p style="margin:0 0 10px;"><strong>Date:</strong> ${escapeHtml(args.date)}</p>
+        <p style="margin:0;"><strong>Time:</strong> ${escapeHtml(args.time)}</p>
+      </div>
+      <p style="margin:0;font-size:15px;line-height:1.7;color:#6f5a50;">
+        If you cannot attend, please contact the salon in advance.
+      </p>
+    `;
+
+  const { error } = await resend.emails.send({
+    from: fromEmail,
+    to: [args.to],
+    subject: isHr
+      ? "Body & Soul — Podsjetnik za termin"
+      : "Body & Soul — Appointment reminder",
+    html: layout(content, lang),
+    replyTo,
+  });
+
+  if (error) throw new Error(error.message);
+}
+
+export async function sendGoogleReviewRequestEmail(args: {
+  to: string;
+  clientName: string;
+  reviewUrl: string;
+  lang?: "hr" | "en";
+}) {
+  const lang = args.lang ?? "hr";
+  const isHr = lang === "hr";
+
+  const content = isHr
+    ? `
+      <h1 style="margin:0 0 14px;font-size:28px;line-height:1.25;color:#2f2723;">Hvala na dolasku ✨</h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        Bok ${escapeHtml(args.clientName)}, hvala vam što ste posjetili Body &amp; Soul.
+      </p>
+
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        Ako ste zadovoljni tretmanom, jako bi nam značilo da ostavite kratku Google recenziju.
+      </p>
+
+      <a href="${escapeHtml(args.reviewUrl)}" style="display:inline-block;background:#2f2723;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:14px;font-weight:700;">
+        Ostavi Google recenziju
+      </a>
+    `
+    : `
+      <h1 style="margin:0 0 14px;font-size:28px;line-height:1.25;color:#2f2723;">Thank you for your visit ✨</h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        Hi ${escapeHtml(args.clientName)}, thank you for visiting Body &amp; Soul.
+      </p>
+
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.7;color:#6f5a50;">
+        If you were happy with your treatment, we would really appreciate a short Google review.
+      </p>
+
+      <a href="${escapeHtml(args.reviewUrl)}" style="display:inline-block;background:#2f2723;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:14px;font-weight:700;">
+        Leave a Google review
+      </a>
+    `;
+
+  const { error } = await resend.emails.send({
+    from: fromEmail,
+    to: [args.to],
+    subject: isHr
+      ? "Body & Soul — Hvala na dolasku"
+      : "Body & Soul — Thank you for your visit",
     html: layout(content, lang),
     replyTo,
   });

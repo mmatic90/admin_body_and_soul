@@ -314,7 +314,7 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
             serviceName,
             date: formatDateHr(request.requested_date),
             time: startTime,
-            lang: "hr",
+            lang: notificationLang,
           });
         } catch (emailError) {
           console.error("Greška pri slanju email potvrde:", emailError);
