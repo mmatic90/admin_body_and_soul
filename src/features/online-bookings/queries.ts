@@ -150,12 +150,43 @@ export async function getOnlineBookingRequestById(id: string) {
   return data;
 }
 
-export async function getOnlineBookingAcceptOptions(serviceId: string) {
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.slice(0, 5).split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(value: number) {
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function addMinutesToTimeString(time: string, minutesToAdd: number) {
+  return minutesToTime(timeToMinutes(time) + minutesToAdd);
+}
+
+function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number) {
+  return aStart < bEnd && bStart < aEnd;
+}
+
+export async function getOnlineBookingAcceptOptions(args: {
+  serviceId: string;
+  date: string;
+  startTime: string;
+  durationMinutes: number;
+}) {
   const supabase = await createClient();
+
+  const startTime = args.startTime.slice(0, 5);
+  const endTime = addMinutesToTimeString(startTime, args.durationMinutes);
+
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes = timeToMinutes(endTime);
 
   const [
     { data: employeeMappings, error: employeeMappingsError },
     { data: roomMappings, error: roomMappingsError },
+    { data: existingAppointments, error: appointmentsError },
   ] = await Promise.all([
     supabase
       .from("employee_services")
@@ -169,7 +200,7 @@ export async function getOnlineBookingAcceptOptions(serviceId: string) {
         )
       `,
       )
-      .eq("service_id", serviceId),
+      .eq("service_id", args.serviceId),
 
     supabase
       .from("service_rooms")
@@ -183,23 +214,102 @@ export async function getOnlineBookingAcceptOptions(serviceId: string) {
         )
       `,
       )
-      .eq("service_id", serviceId),
+      .eq("service_id", args.serviceId),
+
+    supabase
+      .from("appointments")
+      .select("id, employee_id, room_id, start_time, end_time, status")
+      .eq("appointment_date", args.date)
+      .in("status", ["scheduled", "completed"]),
   ]);
 
   if (employeeMappingsError) throw new Error(employeeMappingsError.message);
   if (roomMappingsError) throw new Error(roomMappingsError.message);
+  if (appointmentsError) throw new Error(appointmentsError.message);
 
-  const employees =
+  const mappedEmployees =
     employeeMappings
       ?.map((row: any) => row.employees)
       .filter((employee: any) => employee?.is_active) ?? [];
 
-  const rooms =
+  const mappedRooms =
     roomMappings
       ?.map((row: any) => row.rooms)
       .filter((room: any) => room?.is_active) ?? [];
 
-  return { employees, rooms };
+  const employeesWithAvailability = await Promise.all(
+    mappedEmployees.map(async (employee: any) => {
+      const { data: scheduleRows, error: scheduleError } = await supabase.rpc(
+        "get_employee_effective_schedule",
+        {
+          p_employee_id: employee.id,
+          p_date: args.date,
+        },
+      );
+
+      if (scheduleError) {
+        return null;
+      }
+
+      const schedule = scheduleRows?.[0];
+
+      if (
+        !schedule?.is_working ||
+        !schedule?.start_time ||
+        !schedule?.end_time
+      ) {
+        return null;
+      }
+
+      const employeeStart = timeToMinutes(schedule.start_time);
+      const employeeEnd = timeToMinutes(schedule.end_time);
+
+      if (startMinutes < employeeStart || endMinutes > employeeEnd) {
+        return null;
+      }
+
+      const hasConflict = (existingAppointments ?? []).some(
+        (appointment: any) => {
+          if (appointment.employee_id !== employee.id) return false;
+
+          return overlaps(
+            startMinutes,
+            endMinutes,
+            timeToMinutes(appointment.start_time),
+            timeToMinutes(appointment.end_time),
+          );
+        },
+      );
+
+      if (hasConflict) return null;
+
+      return employee;
+    }),
+  );
+
+  const availableEmployees = employeesWithAvailability.filter(Boolean);
+
+  const availableRooms = mappedRooms.filter((room: any) => {
+    const hasConflict = (existingAppointments ?? []).some(
+      (appointment: any) => {
+        if (appointment.room_id !== room.id) return false;
+
+        return overlaps(
+          startMinutes,
+          endMinutes,
+          timeToMinutes(appointment.start_time),
+          timeToMinutes(appointment.end_time),
+        );
+      },
+    );
+
+    return !hasConflict;
+  });
+
+  return {
+    employees: availableEmployees,
+    rooms: availableRooms,
+  };
 }
 
 export async function getOnlineBookingAutoSuggestion(args: {

@@ -37,7 +37,18 @@ export default async function OnlineBookingDetailsPage({
     notFound();
   }
 
-  const options = await getOnlineBookingAcceptOptions(request.service_id);
+  const defaultDuration =
+    request.final_duration_minutes ||
+    request.duration_minutes ||
+    request.services?.duration_minutes ||
+    30;
+
+  const options = await getOnlineBookingAcceptOptions({
+    serviceId: request.service_id,
+    date: request.requested_date,
+    startTime: String(request.start_time).slice(0, 5),
+    durationMinutes: defaultDuration,
+  });
 
   const autoSuggestion = await getOnlineBookingAutoSuggestion({
     date: request.requested_date,
@@ -61,12 +72,6 @@ export default async function OnlineBookingDetailsPage({
     request.final_room_id ||
     request.suggested_room_id ||
     "";
-
-  const defaultDuration =
-    request.final_duration_minutes ||
-    request.duration_minutes ||
-    request.services?.duration_minutes ||
-    30;
 
   return (
     <main className="min-h-screen bg-app-bg p-4 md:p-6 lg:p-8">
@@ -194,6 +199,15 @@ export default async function OnlineBookingDetailsPage({
                     </div>
                   )}
 
+                  {options.employees.length === 0 ||
+                  options.rooms.length === 0 ? (
+                    <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                      Za ovaj termin trenutno nema dostupnog djelatnika ili
+                      slobodne sobe. Najbolje je odbiti zahtjev uz razlog da
+                      termin više nije dostupan.
+                    </div>
+                  ) : null}
+
                   <div className="mt-5 grid gap-4 md:grid-cols-3">
                     <label className="text-sm">
                       <span className="font-medium text-app-text">
@@ -248,7 +262,11 @@ export default async function OnlineBookingDetailsPage({
 
                   <button
                     type="submit"
-                    className="mt-6 rounded-xl bg-app-accent px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                    disabled={
+                      options.employees.length === 0 ||
+                      options.rooms.length === 0
+                    }
+                    className="mt-6 rounded-xl bg-app-accent px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Prihvati i kreiraj termin
                   </button>

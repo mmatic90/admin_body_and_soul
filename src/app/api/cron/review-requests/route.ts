@@ -67,7 +67,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const reviewUrl = process.env.GOOGLE_REVIEW_URL;
+  const reviewUrl = "https://g.page/r/CYmLX4RPOCS1EAE/review";
 
   if (!reviewUrl) {
     return NextResponse.json(
