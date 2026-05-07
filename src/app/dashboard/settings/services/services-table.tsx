@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Pencil, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import type { ServiceItem } from "@/features/settings/types";
 import {
   bulkUpdateServicesAction,
@@ -18,6 +18,7 @@ type EditableService = {
   id: string;
   name: string;
   duration_minutes: number;
+  price_cents: number | null;
   service_group: string;
   priority_room: string;
   is_active: boolean;
@@ -29,11 +30,29 @@ function toEditable(service: ServiceItem): EditableService {
     id: service.id,
     name: service.name,
     duration_minutes: service.duration_minutes,
+    price_cents: service.price_cents,
     service_group: service.service_group || "",
     priority_room: service.priority_room || "",
     is_active: service.is_active,
     is_online_bookable: service.is_online_bookable,
   };
+}
+
+function priceCentsToInputValue(priceCents: number | null) {
+  if (priceCents == null) return "";
+  return String(Math.round(priceCents / 100));
+}
+
+function priceInputToCents(value: string) {
+  if (!value.trim()) return null;
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return Math.round(parsed * 100);
 }
 
 export default function ServicesTable({ services }: Props) {
@@ -47,7 +66,7 @@ export default function ServicesTable({ services }: Props) {
   function updateItem(
     id: string,
     field: keyof EditableService,
-    value: string | number | boolean,
+    value: string | number | boolean | null,
   ) {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
@@ -65,6 +84,7 @@ export default function ServicesTable({ services }: Props) {
           id: item.id,
           name: item.name,
           duration_minutes: Number(item.duration_minutes),
+          price_cents: item.price_cents,
           service_group: item.service_group || null,
           priority_room: item.priority_room || null,
           is_active: item.is_active,
@@ -116,6 +136,7 @@ export default function ServicesTable({ services }: Props) {
             <tr className="text-left text-sm text-app-muted">
               <th className="px-4 py-3 font-semibold">Naziv</th>
               <th className="px-4 py-3 font-semibold">Trajanje</th>
+              <th className="px-4 py-3 font-semibold">Cijena (€)</th>
               <th className="px-4 py-3 font-semibold">Grupa</th>
               <th className="px-4 py-3 font-semibold">Prioritetna soba</th>
               <th className="px-4 py-3 font-semibold">Aktivno</th>
@@ -153,6 +174,24 @@ export default function ServicesTable({ services }: Props) {
                       )
                     }
                     className="w-28 rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent"
+                  />
+                </td>
+
+                <td className="px-4 py-4">
+                  <input
+                    type="number"
+                    min={0}
+                    step="1"
+                    value={priceCentsToInputValue(service.price_cents)}
+                    onChange={(e) =>
+                      updateItem(
+                        service.id,
+                        "price_cents",
+                        priceInputToCents(e.target.value),
+                      )
+                    }
+                    placeholder="npr. 45"
+                    className="w-32 rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent"
                   />
                 </td>
 

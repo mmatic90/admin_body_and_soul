@@ -344,6 +344,7 @@ export async function bulkUpdateServicesAction(
     id: string;
     name: string;
     duration_minutes: number;
+    price_cents: number | null;
     service_group: string | null;
     priority_room: string | null;
     is_active: boolean;
@@ -383,6 +384,7 @@ export async function bulkUpdateServicesAction(
       id: item.id,
       name: item.name.trim(),
       duration_minutes: item.duration_minutes,
+      price_cents: item.price_cents,
       service_group: item.service_group?.trim() || null,
       priority_room: item.priority_room?.trim() || null,
       is_active: item.is_active,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Lang = "hr" | "en";
@@ -10,6 +10,7 @@ type Service = {
   name: string;
   name_en: string | null;
   duration_minutes: number;
+  price_cents: number | null;
   service_group: string | null;
   service_group_en: string | null;
 };
@@ -27,9 +28,15 @@ const text = {
   hr: {
     min: "min",
     back: "← Nazad na usluge",
+    backToCategories: "← Nazad na kategorije",
     chooseService: "Odaberi uslugu",
+    chooseCategory: "Odaberi kategoriju",
+    categoryLabel: "Kategorija",
+    chooseCategoryText:
+      "Prvo odaberi kategoriju usluge, zatim odaberi tretman koji želiš rezervirati.",
     chooseServiceText:
       "Prikazane su samo usluge dostupne za online rezervaciju.",
+    otherCategory: "Ostalo",
     dateTime: "Datum i vrijeme",
     selectedDate: "Odabrani datum",
     loading: "Učitavanje slobodnih termina...",
@@ -49,10 +56,10 @@ const text = {
     submitting: "Slanje zahtjeva...",
     chooseSlotFirst: "Prvo odaberi slobodan sat.",
     serviceInfo: "Odaberi datum i početak termina. Trajanje tretmana:",
+    priceLabel: "Cijena",
     alerts: {
       missingSlot: "Odaberi uslugu, datum i termin.",
       missingName: "Ime i prezime je obavezno.",
-      missingPhone: "Broj telefona je obavezan.",
       availabilityError: "Greška pri dohvaćanju termina.",
       bookingError: "Greška pri rezervaciji.",
     },
@@ -60,8 +67,14 @@ const text = {
   en: {
     min: "min",
     back: "← Back to services",
+    backToCategories: "← Back to categories",
     chooseService: "Choose a service",
+    chooseCategory: "Choose a category",
+    categoryLabel: "Category",
+    chooseCategoryText:
+      "First choose a service category, then select the treatment you would like to book.",
     chooseServiceText: "Only services available for online booking are shown.",
+    otherCategory: "Other",
     dateTime: "Date and time",
     selectedDate: "Selected date",
     loading: "Loading available times...",
@@ -81,10 +94,10 @@ const text = {
     submitting: "Sending request...",
     chooseSlotFirst: "Please choose an available time first.",
     serviceInfo: "Choose a date and start time. Treatment duration:",
+    priceLabel: "Price",
     alerts: {
       missingSlot: "Please choose a service, date and time.",
       missingName: "Full name is required.",
-      missingPhone: "Phone number is required.",
       availabilityError: "Error loading available times.",
       bookingError: "Error sending booking request.",
     },
@@ -102,6 +115,11 @@ function getServiceGroup(service: Service, lang: Lang) {
   }
 
   return service.service_group;
+}
+
+function formatPrice(priceCents: number | null | undefined) {
+  if (priceCents == null) return null;
+  return `${(priceCents / 100).toFixed(2).replace(".", ".")} €`;
 }
 
 function formatDateInputValue(date: unknown) {
@@ -171,6 +189,7 @@ export default function BookingClient({
   const today = getTodayValue();
   const t = text[lang];
 
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState(today);
   const [calendarStartDate, setCalendarStartDate] = useState(today);
@@ -187,6 +206,25 @@ export default function BookingClient({
   const [submitting, setSubmitting] = useState(false);
 
   const visibleDays = getVisibleDays(calendarStartDate, lang, 4);
+
+  const serviceGroups = useMemo(() => {
+    return Array.from(
+      new Set(
+        services.map(
+          (service) => getServiceGroup(service, lang) || t.otherCategory,
+        ),
+      ),
+    );
+  }, [services, lang, t.otherCategory]);
+
+  const filteredServices = useMemo(() => {
+    if (!selectedGroup) return [];
+
+    return services.filter(
+      (service) =>
+        (getServiceGroup(service, lang) || t.otherCategory) === selectedGroup,
+    );
+  }, [services, selectedGroup, lang, t.otherCategory]);
 
   async function loadAvailability(service: Service, date: string) {
     setLoading(true);
@@ -327,44 +365,82 @@ export default function BookingClient({
       {!selectedService && (
         <div>
           <div className="mb-6">
-            <h2 className="text-2xl font-semibold">{t.chooseService}</h2>
+            <h2 className="text-2xl font-semibold">
+              {selectedGroup ? t.chooseService : t.chooseCategory}
+            </h2>
             <p className="mt-2 text-sm leading-6 text-[#6f5a50]">
-              {t.chooseServiceText}
+              {selectedGroup ? t.chooseServiceText : t.chooseCategoryText}
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {services.map((service) => {
-              const group = getServiceGroup(service, lang);
-
-              return (
+          {!selectedGroup ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {serviceGroups.map((group) => (
                 <button
-                  key={service.id}
+                  key={group}
                   type="button"
-                  onClick={() => {
-                    setSelectedService(service);
-                    setSelectedDate(today);
-                    setCalendarStartDate(today);
-                  }}
-                  className="group rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-5 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                  onClick={() => setSelectedGroup(group)}
+                  className="rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-5 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
                 >
-                  {group ? (
-                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6f5b]">
-                      {group}
-                    </div>
-                  ) : null}
-
-                  <div className="mt-2 text-lg font-semibold">
-                    {getServiceName(service, lang)}
+                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6f5b]">
+                    {t.categoryLabel}
                   </div>
 
-                  <div className="mt-2 text-sm text-[#6f5a50]">
-                    {service.duration_minutes} {t.min}
-                  </div>
+                  <div className="mt-2 text-xl font-semibold">{group}</div>
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <button
+                type="button"
+                onClick={() => setSelectedGroup(null)}
+                className="mb-4 text-sm font-medium text-[#9b6f5b]"
+              >
+                {t.backToCategories}
+              </button>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {filteredServices.map((service) => {
+                  const price = formatPrice(service.price_cents);
+
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedService(service);
+                        setSelectedDate(today);
+                        setCalendarStartDate(today);
+                      }}
+                      className="group rounded-2xl border border-[#eadbd2] bg-[#f8f3ef] p-5 text-left transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+                    >
+                      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9b6f5b]">
+                        {selectedGroup}
+                      </div>
+
+                      <div className="mt-2 text-lg font-semibold">
+                        {getServiceName(service, lang)}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2 text-sm text-[#6f5a50]">
+                        <span>
+                          {service.duration_minutes} {t.min}
+                        </span>
+
+                        {price ? (
+                          <>
+                            <span>·</span>
+                            <span>{price}</span>
+                          </>
+                        ) : null}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -388,16 +464,22 @@ export default function BookingClient({
             <h2 className="text-2xl font-semibold">
               {getServiceName(selectedService, lang)}
             </h2>
+
             <p className="mt-2 text-sm leading-6 text-[#6f5a50]">
               {t.serviceInfo} {selectedService.duration_minutes} {t.min}.
             </p>
+
+            {formatPrice(selectedService.price_cents) ? (
+              <p className="mt-2 text-sm font-semibold text-[#2f2723]">
+                {t.priceLabel}: {formatPrice(selectedService.price_cents)}
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-8">
-            {" "}
             <section className="rounded-[1.75rem] border border-[#eadbd2] bg-[#f8f3ef] p-6 md:p-8">
-              {" "}
               <h3 className="text-xl font-semibold">{t.dateTime}</h3>
+
               <div className="mt-5 flex items-center gap-3">
                 <button
                   type="button"
@@ -442,6 +524,7 @@ export default function BookingClient({
                   →
                 </button>
               </div>
+
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {visibleDays.map((day) => {
                   const active = selectedDate === day.value;
@@ -471,20 +554,24 @@ export default function BookingClient({
                   );
                 })}
               </div>
+
               <p className="mt-4 text-sm text-[#6f5a50]">
                 {t.selectedDate}:{" "}
                 <span className="font-semibold text-[#2f2723]">
                   {formatDateDisplay(selectedDate, lang)}
                 </span>
               </p>
+
               {loading && (
                 <p className="mt-6 text-sm text-[#6f5a50]">{t.loading}</p>
               )}
+
               {!loading && selectedDate && filteredSlots.length === 0 && (
                 <p className="mt-6 rounded-xl bg-white p-4 text-sm text-[#6f5a50]">
                   {t.noSlots}
                 </p>
               )}
+
               {!loading && filteredSlots.length > 0 && (
                 <div className="mt-8">
                   <h4 className="text-sm font-semibold text-[#6f5a50]">
@@ -492,7 +579,6 @@ export default function BookingClient({
                   </h4>
 
                   <div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(96px,1fr))] gap-3">
-                    {" "}
                     {filteredSlots.map((slot) => {
                       const active =
                         selectedSlot?.start_time === slot.start_time &&
@@ -518,12 +604,14 @@ export default function BookingClient({
                 </div>
               )}
             </section>
+
             <section className="rounded-[1.75rem] border border-[#eadbd2] bg-white p-6 md:p-8 2xl:sticky 2xl:top-8">
-              {" "}
               <h3 className="text-xl font-semibold">{t.contactTitle}</h3>
+
               <p className="mt-3 text-sm leading-6 text-[#6f5a50]">
                 {t.contactText}
               </p>
+
               {selectedSlot && (
                 <div className="mt-5 rounded-xl bg-[#f8f3ef] p-4 text-sm text-[#6f5a50]">
                   {t.selectedSlot}:{" "}
@@ -533,19 +621,23 @@ export default function BookingClient({
                   </span>
                 </div>
               )}
+
               <input
                 placeholder={t.fullName}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="mt-5 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
+
               <input
                 placeholder={t.phone}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="mt-4 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
+
               <p className="mt-2 text-xs text-[#6f5a50]">{t.phoneHelp}</p>
+
               <input
                 type="email"
                 placeholder={t.email}
@@ -553,6 +645,7 @@ export default function BookingClient({
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-4 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
+
               <textarea
                 placeholder={t.note}
                 value={note}
@@ -560,6 +653,7 @@ export default function BookingClient({
                 rows={4}
                 className="mt-4 w-full resize-none rounded-xl border border-[#eadbd2] px-4 py-3 outline-none"
               />
+
               <button
                 type="button"
                 onClick={submitBooking}
@@ -575,6 +669,7 @@ export default function BookingClient({
                   t.submit
                 )}
               </button>
+
               {!selectedSlot && (
                 <p className="mt-3 text-center text-xs text-[#6f5a50]">
                   {t.chooseSlotFirst}

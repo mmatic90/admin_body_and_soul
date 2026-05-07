@@ -2,6 +2,7 @@ export type ServiceItem = {
   id: string;
   name: string;
   duration_minutes: number;
+  price_cents: number | null;
   service_group: string | null;
   priority_room: string | null;
   is_active: boolean;

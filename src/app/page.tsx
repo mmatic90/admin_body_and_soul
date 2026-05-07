@@ -11,6 +11,7 @@ import {
 import CookieConsent from "@/components/cookie-consent";
 import PublicFooter from "@/components/public-footer";
 import { createClient } from "@/lib/supabase/server";
+import FloatingWhatsAppButton from "@/components/floating-whatsapp-button";
 
 type ServiceRow = {
   id: string;
@@ -67,6 +68,8 @@ const content = {
     workingHoursFallback: "Radno vrijeme prema narudžbi",
     workingHoursLabel: "Radno vrijeme",
     bookableBadge: "Online",
+    elizabethBookingNote:
+      "Za rezervaciju termina kod Elizabeth potrebno je javiti se telefonski ili putem WhatsApp poruke na broj salona.",
   },
   en: {
     otherLangLabel: "HR",
@@ -106,6 +109,8 @@ const content = {
     workingHoursFallback: "Working hours by appointment",
     workingHoursLabel: "Working hours",
     bookableBadge: "Online",
+    elizabethBookingNote:
+      "To book an appointment with Elizabeth, please contact the salon by phone or WhatsApp message.",
   },
 };
 
@@ -528,7 +533,33 @@ export default async function HomePage({
                   {t.workingHoursLabel}: {workingHoursText}
                 </span>
               </p>
+              <div className="rounded-2xl border border-[#eadbd2]/20 bg-white/10 p-4 text-sm leading-6 text-[#eadbd2]">
+                <div className="font-semibold text-white">
+                  {lang === "en"
+                    ? "Booking with Elizabeth"
+                    : "Termin kod Elizabeth"}
+                </div>
 
+                <p className="mt-1">{t.elizabethBookingNote}</p>
+
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                  <a
+                    href="tel:+385993284199"
+                    className="inline-flex justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#2f2723] transition hover:bg-[#eadbd2]"
+                  >
+                    {lang === "en" ? "Call salon" : "Nazovi salon"}
+                  </a>
+
+                  <a
+                    href="https://wa.me/385993284199"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex justify-center rounded-full border border-[#eadbd2]/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                  >
+                    WhatsApp
+                  </a>
+                </div>
+              </div>
               <Link
                 href={`/booking?lang=${lang}`}
                 className="mt-6 inline-flex items-center justify-center rounded-full bg-white px-7 py-4 font-semibold text-[#2f2723] transition hover:bg-[#eadbd2]"
@@ -542,6 +573,7 @@ export default async function HomePage({
 
       <CookieConsent />
       <PublicFooter />
+      <FloatingWhatsAppButton lang={lang} />
     </main>
   );
 }
