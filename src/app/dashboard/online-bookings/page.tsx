@@ -33,7 +33,7 @@ function getStatusFromSearchParams(searchParams?: {
     return rawStatus;
   }
 
-  return "today";
+  return "pending";
 }
 
 function statusLabel(status: string) {

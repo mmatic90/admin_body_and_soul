@@ -44,7 +44,7 @@ function getTodayValue() {
   return `${year}-${month}-${day}`;
 }
 
-export async function getOnlineBookings(status: OnlineBookingStatus = "today") {
+export async function getOnlineBookings(status: OnlineBookingStatus = "pending") {
   const supabase = await createClient();
 
   let query = supabase
