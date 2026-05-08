@@ -27,7 +27,6 @@ import AppointmentServicesEditor from "@/components/appointment-services-editor"
 import { calculateTotalDuration } from "@/features/appointments/calculate-total-duration";
 import type { AppointmentServiceInput } from "@/features/appointments/types";
 import { addMinutesToTimeString } from "@/features/appointments/time-helpers";
-import SmartAvailability from "@/app/dashboard/appointments/new/smart-availability";
 
 type Props = {
   appointment: AppointmentEditItem;
@@ -644,18 +643,6 @@ export default function EditAppointmentForm({
               </p>
             ) : null}
           </div>
-        </div>
-
-        <div className="md:col-span-3">
-          <SmartAvailability
-            date={selectedDate}
-            items={serviceItems}
-            onApply={({ start_time, employee_id, room_id }) => {
-              setStartTime(start_time);
-              setSelectedEmployeeId(employee_id);
-              setSelectedRoomId(room_id);
-            }}
-          />
         </div>
       </div>
 

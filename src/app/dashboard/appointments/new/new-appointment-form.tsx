@@ -15,7 +15,6 @@ import type {
 import type { ClientComboboxItem } from "@/components/client-combobox";
 import ClientCombobox from "@/components/client-combobox";
 import { getTodayLocalDate } from "@/lib/utils";
-import SmartAvailability from "./smart-availability";
 import AppointmentServicesEditor from "@/components/appointment-services-editor";
 import { calculateTotalDuration } from "@/features/appointments/calculate-total-duration";
 import type { AppointmentServiceInput } from "@/features/appointments/types";
@@ -625,18 +624,6 @@ export default function NewAppointmentForm({
               </p>
             ) : null}
           </div>
-        </div>
-
-        <div className="md:col-span-3">
-          <SmartAvailability
-            date={selectedDate}
-            items={serviceItems}
-            onApply={({ start_time, employee_id, room_id }) => {
-              setStartTime(start_time);
-              setSelectedEmployeeId(employee_id);
-              setSelectedRoomId(room_id);
-            }}
-          />
         </div>
       </div>
 
