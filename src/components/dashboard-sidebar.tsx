@@ -51,6 +51,12 @@ const allNavItems = [
     roles: ["admin", "employee"],
   },
   {
+    href: "/dashboard/calendar/week",
+    label: "Tjedni kalendar",
+    icon: CalendarDays,
+    roles: ["admin", "employee"],
+  },
+  {
     href: "/dashboard/calendar/time-grid",
     label: "Time Grid",
     icon: Clock3,

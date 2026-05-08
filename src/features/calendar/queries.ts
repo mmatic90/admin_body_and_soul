@@ -248,3 +248,124 @@ export async function getCalendarDayDataByEmployees(
 
   return groups;
 }
+
+export async function getCalendarWeekDataByEmployees(args: {
+  weekStart: string;
+  weekEnd: string;
+}) {
+  const supabase = await createClient();
+
+  const [
+    { data: employees, error: employeesError },
+    { data: appointmentsRaw, error: appointmentsError },
+  ] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("id, display_name, color_hex")
+      .eq("is_active", true)
+      .order("display_name", { ascending: true }),
+
+    supabase
+      .from("appointments")
+      .select(
+        `
+        id,
+        appointment_date,
+        start_time,
+        end_time,
+        duration_minutes,
+        status,
+        client_name,
+        client_phone,
+        service:services (
+          id,
+          name,
+          service_group
+        ),
+        appointment_services (
+          id,
+          service_id,
+          duration_minutes,
+          sort_order,
+          service:services (
+            id,
+            name,
+            service_group
+          )
+        ),
+        room:rooms (
+          id,
+          name
+        ),
+        employee:employees (
+          id,
+          display_name,
+          color_hex
+        )
+      `,
+      )
+      .gte("appointment_date", args.weekStart)
+      .lte("appointment_date", args.weekEnd)
+      .order("appointment_date", { ascending: true })
+      .order("start_time", { ascending: true }),
+  ]);
+
+  if (employeesError) {
+    console.error(employeesError);
+    throw new Error("Nije moguće dohvatiti zaposlenike.");
+  }
+
+  if (appointmentsError) {
+    console.error(appointmentsError);
+    throw new Error("Nije moguće dohvatiti termine za tjedni kalendar.");
+  }
+
+  const appointments: any[] = (appointmentsRaw ?? []).map((item: any) => {
+    const service = getSingleRelation(item.service);
+    const room = getSingleRelation(item.room);
+    const employee = getSingleRelation(item.employee);
+
+    return {
+      id: String(item.id ?? ""),
+      appointment_date: String(item.appointment_date ?? ""),
+      start_time: String(item.start_time ?? ""),
+      end_time: String(item.end_time ?? ""),
+      duration_minutes: Number(item.duration_minutes ?? 0),
+      status: item.status,
+      client_name: String(item.client_name ?? ""),
+      client_phone: item.client_phone ? String(item.client_phone) : null,
+      service: service
+        ? {
+            id: String(service.id ?? ""),
+            name: String(service.name ?? ""),
+            service_group: service.service_group
+              ? String(service.service_group)
+              : null,
+          }
+        : null,
+      appointment_services: item.appointment_services ?? [],
+      room: room
+        ? {
+            id: String(room.id ?? ""),
+            name: String(room.name ?? ""),
+          }
+        : null,
+      employee: employee
+        ? {
+            id: String(employee.id ?? ""),
+            display_name: String(employee.display_name ?? ""),
+            color_hex: employee.color_hex ? String(employee.color_hex) : null,
+          }
+        : null,
+    };
+  });
+
+  return (employees ?? []).map((employee) => ({
+    employeeId: employee.id,
+    employeeName: employee.display_name,
+    colorHex: employee.color_hex,
+    appointments: appointments.filter(
+      (appointment) => appointment.employee?.id === employee.id,
+    ),
+  }));
+}
