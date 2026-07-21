@@ -4,6 +4,7 @@ export type PublicBookingService = {
   id: string;
   name: string;
   name_en: string | null;
+  description: string | null;
   duration_minutes: number;
   price_cents: number | null;
   service_group: string | null;
@@ -18,7 +19,7 @@ export async function getOnlineBookableServices(): Promise<
   const { data, error } = await supabase
     .from("services")
     .select(
-      "id, name, name_en, duration_minutes, price_cents, service_group, service_group_en",
+      "id, name, name_en, description, duration_minutes, price_cents, service_group, service_group_en",
     )
     .eq("is_active", true)
     .eq("is_online_bookable", true)

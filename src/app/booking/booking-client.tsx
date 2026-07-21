@@ -9,6 +9,8 @@ type Service = {
   id: string;
   name: string;
   name_en: string | null;
+  desription: string | null;
+  description_en: string | null;
   duration_minutes: number;
   price_cents: number | null;
   service_group: string | null;
@@ -423,11 +425,17 @@ export default function BookingClient({
                         {getServiceName(service, lang)}
                       </div>
 
+                      {service.description ? (
+                        <p className="mt-2 text-sm leading-6 text-[#6f5a50]">
+                          {service.description}
+                        </p>
+                      ) : null}
+
                       <div className="mt-3 flex flex-wrap gap-2 text-sm text-[#6f5a50]">
+                        {" "}
                         <span>
                           {service.duration_minutes} {t.min}
                         </span>
-
                         {price ? (
                           <>
                             <span>·</span>
@@ -464,6 +472,12 @@ export default function BookingClient({
             <h2 className="text-2xl font-semibold">
               {getServiceName(selectedService, lang)}
             </h2>
+
+            {selectedService.description ? (
+              <p className="mt-3 text-sm leading-7 text-[#6f5a50]">
+                {selectedService.description}
+              </p>
+            ) : null}
 
             <p className="mt-2 text-sm leading-6 text-[#6f5a50]">
               {t.serviceInfo} {selectedService.duration_minutes} {t.min}.

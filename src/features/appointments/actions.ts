@@ -124,26 +124,29 @@ function formatSmsTime(time: string) {
 
 function buildAppointmentCreatedSms(args: {
   clientName: string;
+  serviceName: string;
   date: string;
   startTime: string;
 }) {
-  return `Bok ${args.clientName}, vaš termin je uspješno rezerviran za ${formatSmsDate(args.date)} u ${formatSmsTime(args.startTime)}. Body & Soul`;
+  return `Bok ${args.clientName}, vaš termin za "${args.serviceName}" uspješno je rezerviran za ${formatSmsDate(args.date)} u ${formatSmsTime(args.startTime)}. Body & Soul`;
 }
 
 function buildAppointmentReminderSms(args: {
   clientName: string;
+  serviceName: string;
   date: string;
   startTime: string;
 }) {
-  return `Podsjetnik: imate termin ${formatSmsDate(args.date)} u ${formatSmsTime(args.startTime)}. Body & Soul`;
+  return `Podsjetnik: sutra imate termin za "${args.serviceName}" u ${formatSmsTime(args.startTime)} (${formatSmsDate(args.date)}). Body & Soul`;
 }
 
 function buildAppointmentUpdatedSms(args: {
   clientName: string;
+  serviceName: string;
   date: string;
   startTime: string;
 }) {
-  return `Bok ${args.clientName}, vaš termin je izmijenjen. Novi termin je ${formatSmsDate(args.date)} u ${formatSmsTime(args.startTime)}. Body & Soul`;
+  return `Bok ${args.clientName}, vaš termin za "${args.serviceName}" je izmijenjen. Novi termin je ${formatSmsDate(args.date)} u ${formatSmsTime(args.startTime)}. Body & Soul`;
 }
 
 function didAppointmentDateOrTimeChange(
@@ -272,6 +275,7 @@ async function sendOrScheduleCreatedSms(args: {
         to: clientPhone,
         message: buildAppointmentCreatedSms({
           clientName,
+          serviceName,
           date: appointmentDate,
           startTime,
         }),
@@ -304,6 +308,7 @@ async function sendOrScheduleCreatedSms(args: {
       to: clientPhone,
       message: buildAppointmentCreatedSms({
         clientName,
+        serviceName,
         date: appointmentDate,
         startTime,
       }),
@@ -365,6 +370,7 @@ async function sendUpdatedSmsIfPossible(args: {
       to: clientPhone,
       message: buildAppointmentUpdatedSms({
         clientName,
+        serviceName,
         date: appointmentDate,
         startTime,
       }),
@@ -453,6 +459,7 @@ async function scheduleReminderIfPossible(args: {
       to: clientPhone,
       message: buildAppointmentReminderSms({
         clientName,
+        serviceName,
         date: appointmentDate,
         startTime,
       }),

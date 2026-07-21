@@ -17,6 +17,7 @@ type Props = {
 type EditableService = {
   id: string;
   name: string;
+  description: string;
   duration_minutes: number;
   price_cents: number | null;
   service_group: string;
@@ -29,6 +30,7 @@ function toEditable(service: ServiceItem): EditableService {
   return {
     id: service.id,
     name: service.name,
+    description: service.description ?? "",
     duration_minutes: service.duration_minutes,
     price_cents: service.price_cents,
     service_group: service.service_group || "",
@@ -135,6 +137,7 @@ export default function ServicesTable({ services }: Props) {
           <thead className="bg-app-table-head">
             <tr className="text-left text-sm text-app-muted">
               <th className="px-4 py-3 font-semibold">Naziv</th>
+              <th className="px-4 py-3 font-semibold">Opis</th>
               <th className="px-4 py-3 font-semibold">Trajanje</th>
               <th className="px-4 py-3 font-semibold">Cijena (€)</th>
               <th className="px-4 py-3 font-semibold">Grupa</th>
@@ -158,6 +161,17 @@ export default function ServicesTable({ services }: Props) {
                       updateItem(service.id, "name", e.target.value)
                     }
                     className="w-full min-w-[220px] rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent"
+                  />
+                </td>
+
+                <td className="px-4 py-4">
+                  <textarea
+                    value={service.description}
+                    onChange={(e) =>
+                      updateItem(service.id, "description", e.target.value)
+                    }
+                    rows={2}
+                    className="w-full min-w-[280px] rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none"
                   />
                 </td>
 

@@ -20,7 +20,7 @@ function getLang(searchParams?: { lang?: string | string[] }): Lang {
     ? searchParams?.lang[0]
     : searchParams?.lang;
 
-  return rawLang === "en" ? "en" : "hr";
+  return rawLang === "hr" ? "hr" : "en";
 }
 
 function time(value: string | null) {
@@ -41,7 +41,12 @@ function formatWorkingHours(
   const labels = lang === "hr" ? labelsHr : labelsEn;
 
   const openRows = sorted.filter(
-    (row) => !row.is_closed && row.opens_at && row.closes_at,
+    (row) =>
+      row.day_of_week >= 1 &&
+      row.day_of_week <= 5 &&
+      !row.is_closed &&
+      row.opens_at &&
+      row.closes_at,
   );
 
   if (openRows.length === 0) return fallback;

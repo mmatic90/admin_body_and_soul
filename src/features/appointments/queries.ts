@@ -25,6 +25,7 @@ export async function getAppointmentsByDate(
       service:services (
         id,
         name,
+        description,
         service_group,
         priority_room
       ),
@@ -37,6 +38,7 @@ export async function getAppointmentsByDate(
         service:services (
           id,
           name,
+          description,
           service_group
         )
       ),
@@ -66,6 +68,7 @@ export type AppointmentFormService = {
   id: string;
   name: string;
   duration_minutes: number;
+  price_cents: number | null;
   service_group: string | null;
   priority_room: string | null;
   is_active?: boolean;
@@ -101,6 +104,7 @@ export type AppointmentEditServiceItem = {
   service: {
     id: string;
     name: string;
+    description: string | null;
     service_group: string | null;
   } | null;
 };
@@ -137,7 +141,7 @@ export async function getAppointmentFormData() {
     supabase
       .from("services")
       .select(
-        "id, name, duration_minutes, service_group, priority_room, is_active",
+        "id, name, description, duration_minutes, price_cents, service_group, priority_room, is_active",
       )
       .eq("is_active", true)
       .order("name", { ascending: true }),
@@ -234,6 +238,7 @@ export async function getAppointmentById(
         service:services (
           id,
           name,
+          description,
           service_group
         )
       )

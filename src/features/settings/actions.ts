@@ -45,7 +45,10 @@ export async function createServiceAction(
     const supabase = await requireUser();
 
     const name = String(formData.get("name") ?? "").trim();
+    const description = String(formData.get("description") ?? "").trim();
     const durationMinutes = Number(formData.get("duration_minutes") ?? 0);
+    const priceCentsRaw = String(formData.get("price_cents") ?? "").trim();
+    const priceCents = priceCentsRaw ? Number(priceCentsRaw) : null;
     const serviceGroup = String(formData.get("service_group") ?? "").trim();
     const priorityRoom = String(formData.get("priority_room") ?? "").trim();
 
@@ -59,7 +62,9 @@ export async function createServiceAction(
 
     const payload = {
       name,
+      description: description || null,
       duration_minutes: durationMinutes,
+      price_cents: priceCents,
       service_group: serviceGroup || null,
       priority_room: priorityRoom || null,
       is_active: true,
@@ -343,6 +348,7 @@ export async function bulkUpdateServicesAction(
   items: Array<{
     id: string;
     name: string;
+    description: string | null;
     duration_minutes: number;
     price_cents: number | null;
     service_group: string | null;
@@ -383,12 +389,16 @@ export async function bulkUpdateServicesAction(
     const payload = items.map((item) => ({
       id: item.id,
       name: item.name.trim(),
+      description: item.description?.trim() || null,
       duration_minutes: item.duration_minutes,
-      price_cents: item.price_cents,
+      price_cents:
+        item.price_cents === null || item.price_cents === undefined
+          ? null
+          : Number(item.price_cents),
       service_group: item.service_group?.trim() || null,
       priority_room: item.priority_room?.trim() || null,
-      is_active: item.is_active,
-      is_online_bookable: item.is_online_bookable,
+      is_active: Boolean(item.is_active),
+      is_online_bookable: Boolean(item.is_online_bookable),
     }));
 
     const { error } = await supabase
