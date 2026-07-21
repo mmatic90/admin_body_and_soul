@@ -14,7 +14,20 @@ export async function getServices(): Promise<ServiceItem[]> {
   const { data, error } = await supabase
     .from("services")
     .select(
-      "id, name, description, duration_minutes, price_cents, service_group, priority_room, is_active, is_online_bookable",
+      `
+  id,
+  name,
+  name_en,
+  description,
+  description_en,
+  duration_minutes,
+  price_cents,
+  service_group,
+  service_group_en,
+  priority_room,
+  is_active,
+  is_online_bookable
+  `,
     )
     .order("name", { ascending: true });
 

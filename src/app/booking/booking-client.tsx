@@ -9,7 +9,7 @@ type Service = {
   id: string;
   name: string;
   name_en: string | null;
-  desription: string | null;
+  description: string | null;
   description_en: string | null;
   duration_minutes: number;
   price_cents: number | null;
@@ -105,6 +105,12 @@ const text = {
     },
   },
 };
+
+function getServiceDescription(service: Service, lang: Lang) {
+  if (lang === "en" && service.description_en?.trim())
+    return service.description_en;
+  return service.description;
+}
 
 function getServiceName(service: Service, lang: Lang) {
   if (lang === "en" && service.name_en?.trim()) return service.name_en;
@@ -427,7 +433,7 @@ export default function BookingClient({
 
                       {service.description ? (
                         <p className="mt-2 text-sm leading-6 text-[#6f5a50]">
-                          {service.description}
+                          {getServiceDescription(service, lang)}
                         </p>
                       ) : null}
 

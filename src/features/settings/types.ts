@@ -1,10 +1,13 @@
 export type ServiceItem = {
   id: string;
   name: string;
+  name_en: string | null;
   description: string | null;
+  description_en: string | null;
   duration_minutes: number;
   price_cents: number | null;
   service_group: string | null;
+  service_group_en: string | null;
   priority_room: string | null;
   is_active: boolean;
   is_online_bookable: boolean;
