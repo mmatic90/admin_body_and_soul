@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink } from "lucide-react";
 import { getCurrentUserPermissions } from "@/lib/permissions";
 import {
   createFeedbackScreenshotSignedUrl,
@@ -29,6 +29,9 @@ export default async function FeedbackDetailPage({
 
   const screenshotUrl = feedback.screenshot_path
     ? await createFeedbackScreenshotSignedUrl(feedback.screenshot_path)
+    : null;
+  const screenshotDownloadUrl = feedback.screenshot_path
+    ? await createFeedbackScreenshotSignedUrl(feedback.screenshot_path, true)
     : null;
 
   return (
@@ -64,7 +67,17 @@ export default async function FeedbackDetailPage({
 
           {screenshotUrl && (
             <section className="rounded-3xl border border-app-soft bg-app-card p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-bold text-app-text">Screenshot</h2>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-lg font-bold text-app-text">Screenshot</h2>
+                {screenshotDownloadUrl && (
+                  <a
+                    href={screenshotDownloadUrl}
+                    className="inline-flex items-center gap-2 rounded-xl border border-app-soft px-3 py-2 text-sm font-semibold text-app-text transition hover:bg-app-card-alt"
+                  >
+                    <Download className="h-4 w-4" /> Preuzmi screenshot
+                  </a>
+                )}
+              </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={screenshotUrl}
@@ -77,50 +90,21 @@ export default async function FeedbackDetailPage({
           <section className="rounded-3xl border border-app-soft bg-app-card p-6 shadow-sm">
             <h2 className="text-lg font-bold text-app-text">Tehnički podaci</h2>
             <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-app-muted">Korisnik</dt>
-                <dd className="mt-1 font-medium text-app-text">{feedback.created_by_name ?? "Nije dostupno"}</dd>
-              </div>
-              <div>
-                <dt className="text-app-muted">Email</dt>
-                <dd className="mt-1 font-medium text-app-text">{feedback.created_by_email ?? "Nije dostupno"}</dd>
-              </div>
-              <div>
-                <dt className="text-app-muted">Preglednik</dt>
-                <dd className="mt-1 font-medium text-app-text">{feedback.browser ?? "Nije dostupno"}</dd>
-              </div>
-              <div>
-                <dt className="text-app-muted">Operativni sustav</dt>
-                <dd className="mt-1 font-medium text-app-text">{feedback.operating_system ?? "Nije dostupno"}</dd>
-              </div>
-              <div>
-                <dt className="text-app-muted">Veličina prozora</dt>
-                <dd className="mt-1 font-medium text-app-text">{feedback.viewport ?? "Nije dostupno"}</dd>
-              </div>
-              <div>
-                <dt className="text-app-muted">Jezik</dt>
-                <dd className="mt-1 font-medium text-app-text">{feedback.language ?? "Nije dostupno"}</dd>
-              </div>
-              <div>
-                <dt className="text-app-muted">Verzija aplikacije</dt>
-                <dd className="mt-1 font-medium text-app-text">{feedback.app_version ?? "Nije dostupno"}</dd>
-              </div>
+              <div><dt className="text-app-muted">Korisnik</dt><dd className="mt-1 font-medium text-app-text">{feedback.created_by_name ?? "Nije dostupno"}</dd></div>
+              <div><dt className="text-app-muted">Email</dt><dd className="mt-1 font-medium text-app-text">{feedback.created_by_email ?? "Nije dostupno"}</dd></div>
+              <div><dt className="text-app-muted">Preglednik</dt><dd className="mt-1 font-medium text-app-text">{feedback.browser ?? "Nije dostupno"}</dd></div>
+              <div><dt className="text-app-muted">Operativni sustav</dt><dd className="mt-1 font-medium text-app-text">{feedback.operating_system ?? "Nije dostupno"}</dd></div>
+              <div><dt className="text-app-muted">Veličina prozora</dt><dd className="mt-1 font-medium text-app-text">{feedback.viewport ?? "Nije dostupno"}</dd></div>
+              <div><dt className="text-app-muted">Jezik</dt><dd className="mt-1 font-medium text-app-text">{feedback.language ?? "Nije dostupno"}</dd></div>
+              <div><dt className="text-app-muted">Verzija aplikacije</dt><dd className="mt-1 font-medium text-app-text">{feedback.app_version ?? "Nije dostupno"}</dd></div>
               <div>
                 <dt className="text-app-muted">Stranica</dt>
                 <dd className="mt-1 break-all font-medium text-app-text">
                   {feedback.page_url ? (
-                    <a
-                      href={feedback.page_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
-                    >
-                      {feedback.page_url}
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    <a href={feedback.page_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline-offset-4 hover:underline">
+                      {feedback.page_url}<ExternalLink className="h-3.5 w-3.5 shrink-0" />
                     </a>
-                  ) : (
-                    "Nije dostupno"
-                  )}
+                  ) : "Nije dostupno"}
                 </dd>
               </div>
             </dl>
