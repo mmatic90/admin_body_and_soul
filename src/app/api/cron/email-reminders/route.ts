@@ -11,9 +11,11 @@ type AppointmentRow = {
   start_time: string;
   status: string;
   email_reminder_24h_sent_at: string | null;
-  services?: {
-    name: string | null;
-  } | null;
+  services?:
+    | {
+        name: string | null;
+      }[]
+    | null;
 };
 
 function formatDateHr(date: string) {
@@ -128,7 +130,7 @@ export async function GET(request: Request) {
         clientName: appointment.client_name,
         date: formatDateHr(appointment.appointment_date),
         time: appointment.start_time.slice(0, 5),
-        serviceName: appointment.services?.name ?? null,
+        serviceName: appointment.services?.[0].name ?? null,
         lang: getReminderLanguage(appointment),
       });
 
