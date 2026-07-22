@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ClipboardList } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard-sidebar";
 import { getCurrentUserPermissions } from "@/lib/permissions";
 import AdminFooter from "@/components/admin-footer";
@@ -22,7 +24,6 @@ export default async function DashboardLayout({
         <DashboardSidebar
           role={permissions.role}
           displayName={permissions.displayName}
-          isSystemDeveloper={permissions.isSystemDeveloper}
         />
 
         <main className="flex min-w-0 flex-1 flex-col transition-all duration-200">
@@ -30,6 +31,17 @@ export default async function DashboardLayout({
           <AdminFooter />
         </main>
       </div>
+
+      {permissions.isSystemDeveloper && (
+        <Link
+          href="/dashboard/feedback"
+          className="fixed bottom-20 right-5 z-40 flex items-center gap-2 rounded-full border border-app-soft bg-white px-4 py-3 text-sm font-semibold text-app-text shadow-lg transition hover:-translate-y-0.5 hover:bg-app-bg hover:shadow-xl"
+          title="Pregled feedbacka"
+        >
+          <ClipboardList className="h-5 w-5" />
+          <span className="hidden sm:inline">Pregled feedbacka</span>
+        </Link>
+      )}
 
       <FeedbackWidget />
     </div>
