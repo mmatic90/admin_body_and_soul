@@ -63,6 +63,30 @@ thead {
 }
 
 /* =========================
+   PUBLIC MOBILE HEADER
+========================= */
+
+@media (max-width: 767px) {
+  main > section:first-child > div.relative > div.pb-10.md\:hidden {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 20;
+    padding-bottom: 0;
+  }
+
+  main > section:first-child > div.relative > div.pb-10.md\:hidden a {
+    display: inline-flex;
+    min-width: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.58);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+/* =========================
    SCROLLBAR (nice UX)
 ========================= */
 
