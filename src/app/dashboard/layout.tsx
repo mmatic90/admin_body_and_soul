@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import DashboardSidebar from "@/components/dashboard-sidebar";
 import { getCurrentUserPermissions } from "@/lib/permissions";
 import AdminFooter from "@/components/admin-footer";
+import FeedbackWidget from "@/features/feedback/components/feedback-widget";
 
 export default async function DashboardLayout({
   children,
@@ -21,6 +22,7 @@ export default async function DashboardLayout({
         <DashboardSidebar
           role={permissions.role}
           displayName={permissions.displayName}
+          isSystemDeveloper={permissions.isSystemDeveloper}
         />
 
         <main className="flex min-w-0 flex-1 flex-col transition-all duration-200">
@@ -28,6 +30,8 @@ export default async function DashboardLayout({
           <AdminFooter />
         </main>
       </div>
+
+      <FeedbackWidget />
     </div>
   );
 }
