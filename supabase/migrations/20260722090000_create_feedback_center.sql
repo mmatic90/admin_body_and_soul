@@ -51,6 +51,7 @@ for each row execute function public.set_feedback_updated_at();
 
 alter table public.feedback enable row level security;
 
+-- Prijavljeni korisnici smiju samo poslati vlastiti feedback.
 drop policy if exists "Authenticated users can create feedback" on public.feedback;
 create policy "Authenticated users can create feedback"
 on public.feedback
@@ -58,27 +59,12 @@ for insert
 to authenticated
 with check (created_by = auth.uid());
 
+-- Nema client-side SELECT/UPDATE/DELETE policyja.
+-- Administratorski pregled i izmjene idu isključivo kroz server actions,
+-- nakon provjere računa maurizio@bodyandsoul.hr, koristeći service-role client.
 drop policy if exists "Maurizio can view all feedback" on public.feedback;
-create policy "Maurizio can view all feedback"
-on public.feedback
-for select
-to authenticated
-using (lower(coalesce(auth.jwt() ->> 'email', '')) = 'maurizio@bodyandsoul.hr');
-
 drop policy if exists "Maurizio can update feedback" on public.feedback;
-create policy "Maurizio can update feedback"
-on public.feedback
-for update
-to authenticated
-using (lower(coalesce(auth.jwt() ->> 'email', '')) = 'maurizio@bodyandsoul.hr')
-with check (lower(coalesce(auth.jwt() ->> 'email', '')) = 'maurizio@bodyandsoul.hr');
-
 drop policy if exists "Maurizio can delete feedback" on public.feedback;
-create policy "Maurizio can delete feedback"
-on public.feedback
-for delete
-to authenticated
-using (lower(coalesce(auth.jwt() ->> 'email', '')) = 'maurizio@bodyandsoul.hr');
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -93,6 +79,7 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+-- Korisnik smije uploadati sliku samo u mapu sa svojim user ID-em.
 drop policy if exists "Authenticated users can upload feedback screenshots" on storage.objects;
 create policy "Authenticated users can upload feedback screenshots"
 on storage.objects
@@ -103,22 +90,6 @@ with check (
   and (storage.foldername(name))[1] = auth.uid()::text
 );
 
+-- Čitanje i brisanje screenshotova ide samo server-side preko service role klijenta.
 drop policy if exists "Maurizio can read feedback screenshots" on storage.objects;
-create policy "Maurizio can read feedback screenshots"
-on storage.objects
-for select
-to authenticated
-using (
-  bucket_id = 'feedback'
-  and lower(coalesce(auth.jwt() ->> 'email', '')) = 'maurizio@bodyandsoul.hr'
-);
-
 drop policy if exists "Maurizio can delete feedback screenshots" on storage.objects;
-create policy "Maurizio can delete feedback screenshots"
-on storage.objects
-for delete
-to authenticated
-using (
-  bucket_id = 'feedback'
-  and lower(coalesce(auth.jwt() ->> 'email', '')) = 'maurizio@bodyandsoul.hr'
-);
