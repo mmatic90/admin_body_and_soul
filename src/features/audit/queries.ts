@@ -34,10 +34,46 @@ export type AuditLogFilterOptions = {
   entityTypes: string[];
 };
 
+const auditLogColumns =
+  "id, created_at, actor_user_id, actor_email, actor_display_name, action, entity_type, entity_id, entity_label";
+
 function getNextDayIso(dateValue: string) {
   const date = new Date(`${dateValue}T00:00:00`);
   date.setDate(date.getDate() + 1);
   return date.toISOString();
+}
+
+function applyAuditLogFilters(query: any, filters: AuditLogFilters) {
+  let filteredQuery = query;
+
+  if (filters.dateFrom) {
+    filteredQuery = filteredQuery.gte("created_at", `${filters.dateFrom}T00:00:00`);
+  }
+
+  if (filters.dateTo) {
+    filteredQuery = filteredQuery.lt("created_at", getNextDayIso(filters.dateTo));
+  }
+
+  if (filters.actor) {
+    filteredQuery = filteredQuery.eq("actor_user_id", filters.actor);
+  }
+
+  if (filters.action) {
+    filteredQuery = filteredQuery.eq("action", filters.action);
+  }
+
+  if (filters.entityType) {
+    filteredQuery = filteredQuery.eq("entity_type", filters.entityType);
+  }
+
+  if (filters.search?.trim()) {
+    const search = filters.search.trim().replace(/[(),]/g, " ");
+    filteredQuery = filteredQuery.or(
+      `actor_display_name.ilike.%${search}%,actor_email.ilike.%${search}%,entity_label.ilike.%${search}%,action.ilike.%${search}%,entity_type.ilike.%${search}%`,
+    );
+  }
+
+  return filteredQuery;
 }
 
 export async function getAuditLogs(
@@ -51,37 +87,9 @@ export async function getAuditLogs(
 
   let query = supabase
     .from("audit_logs")
-    .select(
-      "id, created_at, actor_user_id, actor_email, actor_display_name, action, entity_type, entity_id, entity_label",
-      { count: "exact" },
-    );
+    .select(auditLogColumns, { count: "exact" });
 
-  if (filters.dateFrom) {
-    query = query.gte("created_at", `${filters.dateFrom}T00:00:00`);
-  }
-
-  if (filters.dateTo) {
-    query = query.lt("created_at", getNextDayIso(filters.dateTo));
-  }
-
-  if (filters.actor) {
-    query = query.eq("actor_user_id", filters.actor);
-  }
-
-  if (filters.action) {
-    query = query.eq("action", filters.action);
-  }
-
-  if (filters.entityType) {
-    query = query.eq("entity_type", filters.entityType);
-  }
-
-  if (filters.search?.trim()) {
-    const search = filters.search.trim().replace(/[(),]/g, " ");
-    query = query.or(
-      `actor_display_name.ilike.%${search}%,actor_email.ilike.%${search}%,entity_label.ilike.%${search}%,action.ilike.%${search}%,entity_type.ilike.%${search}%`,
-    );
-  }
+  query = applyAuditLogFilters(query, filters);
 
   const { data, error, count } = await query
     .order("created_at", { ascending: false })
@@ -96,6 +104,27 @@ export async function getAuditLogs(
     items: (data ?? []) as AuditLogItem[],
     total: count ?? 0,
   };
+}
+
+export async function getAuditLogsForExport(
+  filters: AuditLogFilters = {},
+  limit = 5000,
+): Promise<AuditLogItem[]> {
+  const supabase = await createClient();
+
+  let query = supabase.from("audit_logs").select(auditLogColumns);
+  query = applyAuditLogFilters(query, filters);
+
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(Math.min(10000, Math.max(1, limit)));
+
+  if (error) {
+    console.error(error);
+    throw new Error("Nije moguće izvesti audit log.");
+  }
+
+  return (data ?? []) as AuditLogItem[];
 }
 
 export async function getAuditLogFilterOptions(): Promise<AuditLogFilterOptions> {
