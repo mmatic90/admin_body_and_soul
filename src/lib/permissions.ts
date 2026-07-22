@@ -2,6 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export type AppRole = "admin" | "employee";
 
+const SYSTEM_DEVELOPER_EMAILS = new Set([
+  "maurizio@bodyandsoul.hr",
+]);
+
 export type CurrentUserPermissions = {
   userId: string;
   email: string | null;
@@ -10,7 +14,12 @@ export type CurrentUserPermissions = {
   displayName: string;
   colorHex: string | null;
   isEmployee: boolean;
+  isSystemDeveloper: boolean;
 };
+
+export function isSystemDeveloperEmail(email: string | null | undefined) {
+  return SYSTEM_DEVELOPER_EMAILS.has(String(email ?? "").trim().toLowerCase());
+}
 
 export async function getCurrentUserPermissions(): Promise<CurrentUserPermissions | null> {
   const supabase = await createClient();
@@ -48,14 +57,17 @@ export async function getCurrentUserPermissions(): Promise<CurrentUserPermission
     return null;
   }
 
+  const email = profile.email ?? user.email ?? null;
+
   return {
     userId: user.id,
-    email: profile.email ?? user.email ?? null,
+    email,
     role: profile.role as AppRole,
     employeeId: employee?.id ?? null,
     displayName: profile.display_name ?? user.email ?? "Korisnik",
     colorHex: employee?.color_hex ?? null,
     isEmployee: Boolean(employee),
+    isSystemDeveloper: isSystemDeveloperEmail(email),
   };
 }
 
