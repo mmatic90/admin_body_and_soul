@@ -48,6 +48,13 @@ export type FeedbackRow = {
   admin_comment: string | null;
 };
 
+export type FeedbackStats = {
+  total: number;
+  screenshots: number;
+  screenshotBytes: number;
+  cleanupCandidates: number;
+};
+
 export type FeedbackActionResult =
-  | { ok: true; feedbackId?: string }
+  | { ok: true; feedbackId?: string; deletedCount?: number }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
