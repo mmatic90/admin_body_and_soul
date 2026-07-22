@@ -10,8 +10,6 @@ import {
 } from "@/features/audit/queries";
 
 function formatDateTime(value: string) {
-  const date = new Date(value);
-
   return new Intl.DateTimeFormat("hr-HR", {
     timeZone: "Europe/Zagreb",
     day: "2-digit",
@@ -19,8 +17,9 @@ function formatDateTime(value: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
     hour12: false,
-  }).format(date);
+  }).format(new Date(value));
 }
 
 function formatDateInput(date: Date) {
@@ -107,7 +106,8 @@ function buildHref(
     if (value === undefined || value === "") params.delete(key);
     else params.set(key, String(value));
   }
-  return `?${params.toString()}`;
+  const query = params.toString();
+  return query ? `?${query}` : "?";
 }
 
 export default async function AuditLogPage({ searchParams }: { searchParams: SearchParams }) {
@@ -121,6 +121,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Sea
     action: readParam(raw.action),
     entityType: readParam(raw.entityType),
     search: readParam(raw.search),
+    selected: readParam(raw.selected),
     page: Math.max(1, Number(readParam(raw.page)) || 1),
     pageSize: [25, 50, 100, 200].includes(Number(readParam(raw.pageSize)))
       ? Number(readParam(raw.pageSize))
@@ -149,6 +150,16 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Sea
     ...(params.search && { search: params.search }),
     pageSize: String(params.pageSize),
   };
+  const currentPageParams = { ...activeParams, page: String(safePage) };
+  const selectedLog = result.items.find((log) => log.id === params.selected) ?? null;
+  const exportParams = new URLSearchParams();
+  if (params.dateFrom) exportParams.set("dateFrom", params.dateFrom);
+  if (params.dateTo) exportParams.set("dateTo", params.dateTo);
+  if (params.actor) exportParams.set("actor", params.actor);
+  if (params.action) exportParams.set("action", params.action);
+  if (params.entityType) exportParams.set("entityType", params.entityType);
+  if (params.search) exportParams.set("search", params.search);
+  const exportHref = `/dashboard/settings/audit-log/export${exportParams.toString() ? `?${exportParams}` : ""}`;
 
   const quickRanges = [
     { label: "Danas", from: formatDateInput(today), to: formatDateInput(today) },
@@ -163,9 +174,14 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Sea
         title="Audit log"
         description="Pregled, pretraživanje i filtriranje svih važnih akcija u sustavu."
         actions={
-          <Link href="/dashboard/settings" className="inline-flex rounded-xl border border-app-soft bg-white px-4 py-2 text-sm font-medium text-app-text transition hover:bg-app-bg">
-            Natrag
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <a href={exportHref} className="inline-flex rounded-xl bg-app-text px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90">
+              Izvezi CSV
+            </a>
+            <Link href="/dashboard/settings" className="inline-flex rounded-xl border border-app-soft bg-white px-4 py-2 text-sm font-medium text-app-text transition hover:bg-app-bg">
+              Natrag
+            </Link>
+          </div>
         }
       />
 
@@ -187,11 +203,11 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Sea
         <div className="space-y-4 rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm">
           <div className="flex flex-wrap gap-2">
             {quickRanges.map((range) => (
-              <Link key={range.label} href={buildHref(activeParams, { dateFrom: range.from, dateTo: range.to, page: 1 })} className="rounded-full border border-app-soft px-3 py-1.5 text-sm font-medium text-app-text transition hover:bg-app-bg">
+              <Link key={range.label} href={buildHref(activeParams, { dateFrom: range.from, dateTo: range.to, page: 1, selected: undefined })} className="rounded-full border border-app-soft px-3 py-1.5 text-sm font-medium text-app-text transition hover:bg-app-bg">
                 {range.label}
               </Link>
             ))}
-            <Link href={buildHref(activeParams, { dateFrom: undefined, dateTo: undefined, page: 1 })} className="rounded-full border border-app-soft px-3 py-1.5 text-sm font-medium text-app-text transition hover:bg-app-bg">
+            <Link href={buildHref(activeParams, { dateFrom: undefined, dateTo: undefined, page: 1, selected: undefined })} className="rounded-full border border-app-soft px-3 py-1.5 text-sm font-medium text-app-text transition hover:bg-app-bg">
               Sve
             </Link>
           </div>
@@ -252,6 +268,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Sea
                     <th className="px-4 py-3 font-semibold">Akcija</th>
                     <th className="px-4 py-3 font-semibold">Korisnik</th>
                     <th className="px-4 py-3 font-semibold">Entitet</th>
+                    <th className="px-4 py-3 font-semibold text-right">Detalji</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -268,6 +285,11 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Sea
                         {entityLabel(log.entity_type)}
                         {log.entity_label ? <span className="text-app-muted"> · {log.entity_label}</span> : null}
                       </td>
+                      <td className="px-4 py-4 text-right">
+                        <Link href={buildHref(currentPageParams, { selected: log.id })} className="rounded-lg border border-app-soft bg-white px-3 py-1.5 text-xs font-semibold text-app-text transition hover:bg-app-bg">
+                          Otvori
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -279,23 +301,63 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Sea
             <div className="flex items-center gap-2 text-sm text-app-muted">
               <span>Prikaz po stranici:</span>
               {[25, 50, 100, 200].map((size) => (
-                <Link key={size} href={buildHref(activeParams, { pageSize: size, page: 1 })} className={`rounded-lg px-2.5 py-1 ${params.pageSize === size ? "bg-app-text text-white" : "border border-app-soft bg-white text-app-text"}`}>
+                <Link key={size} href={buildHref(activeParams, { pageSize: size, page: 1, selected: undefined })} className={`rounded-lg px-2.5 py-1 ${params.pageSize === size ? "bg-app-text text-white" : "border border-app-soft bg-white text-app-text"}`}>
                   {size}
                 </Link>
               ))}
             </div>
             <div className="flex items-center gap-3 text-sm">
-              <Link aria-disabled={safePage <= 1} href={safePage > 1 ? buildHref(activeParams, { page: safePage - 1 }) : "#"} className={`rounded-xl border border-app-soft px-3 py-2 ${safePage <= 1 ? "pointer-events-none opacity-40" : "bg-white text-app-text hover:bg-app-bg"}`}>
+              <Link aria-disabled={safePage <= 1} href={safePage > 1 ? buildHref(activeParams, { page: safePage - 1, selected: undefined }) : "#"} className={`rounded-xl border border-app-soft px-3 py-2 ${safePage <= 1 ? "pointer-events-none opacity-40" : "bg-white text-app-text hover:bg-app-bg"}`}>
                 ← Prethodna
               </Link>
               <span className="text-app-muted">Stranica {safePage} od {totalPages}</span>
-              <Link aria-disabled={safePage >= totalPages} href={safePage < totalPages ? buildHref(activeParams, { page: safePage + 1 }) : "#"} className={`rounded-xl border border-app-soft px-3 py-2 ${safePage >= totalPages ? "pointer-events-none opacity-40" : "bg-white text-app-text hover:bg-app-bg"}`}>
+              <Link aria-disabled={safePage >= totalPages} href={safePage < totalPages ? buildHref(activeParams, { page: safePage + 1, selected: undefined }) : "#"} className={`rounded-xl border border-app-soft px-3 py-2 ${safePage >= totalPages ? "pointer-events-none opacity-40" : "bg-white text-app-text hover:bg-app-bg"}`}>
                 Sljedeća →
               </Link>
             </div>
           </div>
         </div>
       </PageSection>
+
+      {selectedLog ? (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
+          <Link href={buildHref(currentPageParams, { selected: undefined })} aria-label="Zatvori detalje" className="absolute inset-0" />
+          <aside className="relative z-10 h-full w-full max-w-md overflow-y-auto border-l border-app-soft bg-app-card p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-app-muted">Audit zapis</p>
+                <h2 className="mt-1 text-2xl font-semibold text-app-text">{actionLabel(selectedLog.action)}</h2>
+              </div>
+              <Link href={buildHref(currentPageParams, { selected: undefined })} className="rounded-xl border border-app-soft bg-white px-3 py-2 text-sm font-medium text-app-text hover:bg-app-bg">
+                Zatvori
+              </Link>
+            </div>
+
+            <div className="mt-8 space-y-4">
+              {[
+                ["Datum i vrijeme", formatDateTime(selectedLog.created_at)],
+                ["Korisnik", selectedLog.actor_display_name || selectedLog.actor_email || "Nepoznato"],
+                ["E-mail", selectedLog.actor_email || "Nije zabilježen"],
+                ["Akcija", actionLabel(selectedLog.action)],
+                ["Entitet", entityLabel(selectedLog.entity_type)],
+                ["Naziv entiteta", selectedLog.entity_label || "Nije zabilježen"],
+                ["ID entiteta", selectedLog.entity_id || "Nije zabilježen"],
+                ["ID audit zapisa", selectedLog.id],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-app-soft bg-app-card-alt p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">{label}</p>
+                  <p className="mt-2 break-words text-sm font-medium text-app-text">{value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 rounded-2xl border border-dashed border-app-soft p-4">
+              <p className="text-sm font-semibold text-app-text">Povijest promjena</p>
+              <p className="mt-1 text-sm text-app-muted">Prikaz vrijednosti prije i poslije promjene dodat ćemo kada audit zapisi budu spremali detaljne promjene.</p>
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </PageShell>
   );
 }
