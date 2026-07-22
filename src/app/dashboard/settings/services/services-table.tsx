@@ -18,6 +18,9 @@ type EditableService = {
   id: string;
   name: string;
   description: string;
+  name_en: string;
+  description_en: string;
+  service_group_en: string;
   duration_minutes: number;
   price_cents: number | null;
   service_group: string;
@@ -31,6 +34,9 @@ function toEditable(service: ServiceItem): EditableService {
     id: service.id,
     name: service.name,
     description: service.description ?? "",
+    name_en: service.name_en ?? "",
+    description_en: service.description_en ?? "",
+    service_group_en: service.service_group_en ?? "",
     duration_minutes: service.duration_minutes,
     price_cents: service.price_cents,
     service_group: service.service_group || "",
@@ -85,6 +91,10 @@ export default function ServicesTable({ services }: Props) {
         items.map((item) => ({
           id: item.id,
           name: item.name,
+          description: item.description,
+          name_en: item.name_en,
+          description_en: item.description_en,
+          service_group_en: item.service_group_en,
           duration_minutes: Number(item.duration_minutes),
           price_cents: item.price_cents,
           service_group: item.service_group || null,

@@ -232,6 +232,7 @@ async function sendOrScheduleCreatedSms(args: {
   appointmentId: string;
   clientPhone: string | null;
   clientName: string;
+  serviceName: string;
   appointmentDate: string;
   startTime: string;
   status: AppointmentStatus;
@@ -242,6 +243,7 @@ async function sendOrScheduleCreatedSms(args: {
     appointmentId,
     clientPhone,
     clientName,
+    serviceName,
     appointmentDate,
     startTime,
     status,
@@ -337,6 +339,7 @@ async function sendUpdatedSmsIfPossible(args: {
   appointmentId: string;
   clientPhone: string | null;
   clientName: string;
+  serviceName: string;
   appointmentDate: string;
   startTime: string;
   status: AppointmentStatus;
@@ -347,6 +350,7 @@ async function sendUpdatedSmsIfPossible(args: {
     appointmentId,
     clientPhone,
     clientName,
+    serviceName,
     appointmentDate,
     startTime,
     status,
@@ -398,6 +402,7 @@ async function scheduleReminderIfPossible(args: {
   appointmentId: string;
   clientPhone: string | null;
   clientName: string;
+  serviceName: string;
   appointmentDate: string;
   startTime: string;
   status: AppointmentStatus;
@@ -408,6 +413,7 @@ async function scheduleReminderIfPossible(args: {
     appointmentId,
     clientPhone,
     clientName,
+    serviceName,
     appointmentDate,
     startTime,
     status,
@@ -1027,6 +1033,14 @@ export async function createAppointmentAction(
   const primaryServiceId = appointmentValidation.primaryServiceId;
   const endTime = appointmentValidation.endTime;
 
+  const { data: primaryService } = await supabase
+    .from("services")
+    .select("name")
+    .eq("id", primaryServiceId)
+    .maybeSingle();
+
+  const serviceName = primaryService?.name ?? "odabranu uslugu";
+
   const { data: appointment, error: appointmentError } = await supabase
     .from("appointments")
     .insert({
@@ -1079,6 +1093,7 @@ export async function createAppointmentAction(
     appointmentId: appointment.id,
     clientPhone,
     clientName: values.client_name,
+    serviceName,
     appointmentDate: values.appointment_date,
     startTime: values.start_time,
     status: values.status,
@@ -1088,6 +1103,7 @@ export async function createAppointmentAction(
     appointmentId: appointment.id,
     clientPhone,
     clientName: values.client_name,
+    serviceName,
     appointmentDate: values.appointment_date,
     startTime: values.start_time,
     status: values.status,
@@ -1238,6 +1254,14 @@ export async function updateAppointmentAction(
   const primaryServiceId = appointmentValidation.primaryServiceId;
   const endTime = appointmentValidation.endTime;
 
+  const { data: primaryService } = await supabase
+    .from("services")
+    .select("name")
+    .eq("id", primaryServiceId)
+    .maybeSingle();
+
+  const serviceName = primaryService?.name ?? "odabranu uslugu";
+
   await cancelExistingReminderIfAny(appointmentId);
 
   const { error: appointmentError } = await supabase
@@ -1301,6 +1325,7 @@ export async function updateAppointmentAction(
     appointmentId,
     clientPhone,
     clientName: values.client_name,
+    serviceName,
     appointmentDate: values.appointment_date,
     startTime: values.start_time,
     status: values.status,
@@ -1319,6 +1344,7 @@ export async function updateAppointmentAction(
       appointmentId,
       clientPhone,
       clientName: values.client_name,
+      serviceName,
       appointmentDate: values.appointment_date,
       startTime: values.start_time,
       status: values.status,
