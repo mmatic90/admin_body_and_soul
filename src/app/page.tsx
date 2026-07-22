@@ -17,6 +17,8 @@ type ServiceRow = {
   id: string;
   name: string;
   name_en: string | null;
+  description: string | null;
+  description_en: string | null;
   service_group: string | null;
   service_group_en: string | null;
   is_online_bookable?: boolean | null;
@@ -123,11 +125,16 @@ function getLang(searchParams?: { lang?: string | string[] }) {
 }
 
 function getServiceName(service: ServiceRow, lang: "hr" | "en") {
-  if (lang === "en" && service.name_en?.trim()) {
-    return service.name_en;
+  if (lang === "en" && service.name_en?.trim()) return service.name_en;
+  return service.name;
+}
+
+function getServiceDescription(service: ServiceRow, lang: "hr" | "en") {
+  if (lang === "en") {
+    return service.description_en?.trim() || service.description?.trim() || null;
   }
 
-  return service.name;
+  return service.description?.trim() || null;
 }
 
 function getServiceGroup(service: ServiceRow, lang: "hr" | "en") {
@@ -150,11 +157,9 @@ function formatWorkingHours(
   if (!rows || rows.length === 0) return fallback;
 
   const sorted = [...rows].sort((a, b) => a.day_of_week - b.day_of_week);
-
   const labelsHr = ["Ned", "Pon", "Uto", "Sri", "Čet", "Pet", "Sub"];
   const labelsEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const labels = lang === "hr" ? labelsHr : labelsEn;
-
   const openRows = sorted.filter(
     (row) => !row.is_closed && row.opens_at && row.closes_at,
   );
@@ -167,7 +172,6 @@ function formatWorkingHours(
 
   for (let i = 1; i <= openRows.length; i += 1) {
     const current = openRows[i];
-
     const sameHours =
       current &&
       current.opens_at === previous.opens_at &&
@@ -216,9 +220,7 @@ function pickFeaturedServices(
     .sort((a, b) => {
       const aBookable = a.is_online_bookable ? 1 : 0;
       const bBookable = b.is_online_bookable ? 1 : 0;
-
       if (aBookable !== bBookable) return bBookable - aBookable;
-
       return (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0);
     })
     .slice(0, 8);
@@ -232,7 +234,6 @@ export default async function HomePage({
   const resolvedSearchParams = await searchParams;
   const lang = getLang(resolvedSearchParams);
   const t = content[lang];
-
   const supabase = await createClient();
 
   const [
@@ -243,16 +244,14 @@ export default async function HomePage({
     supabase
       .from("services")
       .select(
-        "id, name, name_en, service_group, service_group_en, is_online_bookable",
+        "id, name, name_en, description, description_en, service_group, service_group_en, is_online_bookable",
       )
       .eq("is_active", true),
-
     supabase
       .from("appointments")
       .select("service_id")
       .in("status", ["scheduled", "completed"])
       .limit(500),
-
     supabase
       .from("salon_working_hours")
       .select("day_of_week, opens_at, closes_at, is_closed"),
@@ -282,25 +281,13 @@ export default async function HomePage({
             </div>
 
             <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-              <a href="#usluge" className="hover:text-[#9b6f5b]">
-                {t.navServices}
-              </a>
-              <a href="#o-nama" className="hover:text-[#9b6f5b]">
-                {t.navAbout}
-              </a>
-              <a href="#kontakt" className="hover:text-[#9b6f5b]">
-                {t.navContact}
-              </a>
-              <Link
-                href={`/booking?lang=${lang}`}
-                className="rounded-full bg-[#2f2723] px-5 py-2.5 text-white transition hover:bg-[#4a3932]"
-              >
+              <a href="#usluge" className="hover:text-[#9b6f5b]">{t.navServices}</a>
+              <a href="#o-nama" className="hover:text-[#9b6f5b]">{t.navAbout}</a>
+              <a href="#kontakt" className="hover:text-[#9b6f5b]">{t.navContact}</a>
+              <Link href={`/booking?lang=${lang}`} className="rounded-full bg-[#2f2723] px-5 py-2.5 text-white transition hover:bg-[#4a3932]">
                 {t.navBook}
               </Link>
-              <Link
-                href={t.otherLangHref}
-                className="rounded-full border border-[#c9a997] px-4 py-2 text-sm hover:bg-white/60"
-              >
+              <Link href={t.otherLangHref} className="rounded-full border border-[#c9a997] px-4 py-2 text-sm hover:bg-white/60">
                 {t.otherLangLabel}
               </Link>
             </nav>
@@ -312,28 +299,14 @@ export default async function HomePage({
                 <Sparkles className="h-4 w-4" />
                 {t.badge}
               </div>
-
-              <h2 className="text-5xl font-semibold leading-tight tracking-tight md:text-7xl">
-                {t.heroTitle}
-              </h2>
-
-              <p className="mt-6 max-w-xl text-lg leading-8 text-[#6f5a50]">
-                {t.heroText}
-              </p>
-
+              <h2 className="text-5xl font-semibold leading-tight tracking-tight md:text-7xl">{t.heroTitle}</h2>
+              <p className="mt-6 max-w-xl text-lg leading-8 text-[#6f5a50]">{t.heroText}</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={`/booking?lang=${lang}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#2f2723] px-7 py-4 font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#4a3932]"
-                >
+                <Link href={`/booking?lang=${lang}`} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#2f2723] px-7 py-4 font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#4a3932]">
                   <CalendarCheck className="h-5 w-5" />
                   {t.primaryCta}
                 </Link>
-
-                <a
-                  href="#kontakt"
-                  className="inline-flex items-center justify-center rounded-full border border-[#c9a997] bg-white/60 px-7 py-4 font-semibold text-[#2f2723] transition hover:bg-white"
-                >
+                <a href="#kontakt" className="inline-flex items-center justify-center rounded-full border border-[#c9a997] bg-white/60 px-7 py-4 font-semibold text-[#2f2723] transition hover:bg-white">
                   {t.secondaryCta}
                 </a>
               </div>
@@ -341,51 +314,19 @@ export default async function HomePage({
 
             <div className="grid gap-4">
               <div className="grid grid-cols-2 gap-4">
-                <Image
-                  src="/images/salon-1.jpg"
-                  alt="Body & Soul salon"
-                  width={500}
-                  height={600}
-                  className="h-64 rounded-[2rem] object-cover shadow-xl"
-                  priority
-                />
-                <Image
-                  src="/images/salon-2.jpg"
-                  alt="Beauty salon treatment space"
-                  width={500}
-                  height={600}
-                  className="mt-10 h-64 rounded-[2rem] object-cover shadow-xl"
-                  priority
-                />
+                <Image src="/images/salon-1.jpg" alt="Body & Soul salon" width={500} height={600} className="h-64 rounded-[2rem] object-cover shadow-xl" priority />
+                <Image src="/images/salon-2.jpg" alt="Beauty salon treatment space" width={500} height={600} className="mt-10 h-64 rounded-[2rem] object-cover shadow-xl" priority />
               </div>
-
               <div className="rounded-[2rem] border border-white/70 bg-white/60 p-4 shadow-2xl backdrop-blur">
                 <div className="rounded-[1.5rem] bg-[#2f2723] p-8 text-white">
                   <div className="flex items-center gap-2 text-[#e8cfc0]">
-                    <Star className="h-5 w-5 fill-current" />
-                    <Star className="h-5 w-5 fill-current" />
-                    <Star className="h-5 w-5 fill-current" />
-                    <Star className="h-5 w-5 fill-current" />
-                    <Star className="h-5 w-5 fill-current" />
+                    {[0, 1, 2, 3, 4].map((item) => <Star key={item} className="h-5 w-5 fill-current" />)}
                   </div>
-
-                  <p className="mt-6 text-xl font-medium leading-relaxed">
-                    “{t.quote}”
-                  </p>
-
+                  <p className="mt-6 text-xl font-medium leading-relaxed">“{t.quote}”</p>
                   <div className="mt-8 grid gap-4 text-sm text-[#eadbd2]">
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5" />
-                      {workingHoursText}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-5 w-5" />
-                      {t.location}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Phone className="h-5 w-5" />
-                      {t.phone}
-                    </div>
+                    <div className="flex items-center gap-3"><Clock className="h-5 w-5" />{workingHoursText}</div>
+                    <div className="flex items-center gap-3"><MapPin className="h-5 w-5" />{t.location}</div>
+                    <div className="flex items-center gap-3"><Phone className="h-5 w-5" />{t.phone}</div>
                   </div>
                 </div>
               </div>
@@ -393,10 +334,7 @@ export default async function HomePage({
           </div>
 
           <div className="pb-10 md:hidden">
-            <Link
-              href={t.otherLangHref}
-              className="rounded-full border border-[#c9a997] px-4 py-2 text-sm hover:bg-white/60"
-            >
+            <Link href={t.otherLangHref} className="rounded-full border border-[#c9a997] px-4 py-2 text-sm hover:bg-white/60">
               {t.otherLangLabel}
             </Link>
           </div>
@@ -404,52 +342,37 @@ export default async function HomePage({
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-16">
-        <Image
-          src="/images/salon-3.jpg"
-          alt="Body & Soul ambience"
-          width={1400}
-          height={700}
-          className="h-[420px] w-full rounded-[2rem] object-cover shadow-xl"
-        />
+        <Image src="/images/salon-3.jpg" alt="Body & Soul ambience" width={1400} height={700} className="h-[420px] w-full rounded-[2rem] object-cover shadow-xl" />
       </section>
 
       <section id="usluge" className="mx-auto max-w-7xl px-6 py-24">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#9b6f5b]">
-            {t.servicesEyebrow}
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#9b6f5b]">{t.servicesEyebrow}</p>
           <h3 className="mt-3 text-4xl font-semibold">{t.servicesTitle}</h3>
-          <p className="mt-5 text-lg leading-8 text-[#6f5a50]">
-            {t.servicesText}
-          </p>
+          <p className="mt-5 text-lg leading-8 text-[#6f5a50]">{t.servicesText}</p>
         </div>
 
-        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-4">
           {featuredServices.map((service) => {
             const group = getServiceGroup(service, lang);
+            const description = getServiceDescription(service, lang);
 
             return (
-              <div
-                key={service.id}
-                className="rounded-3xl border border-[#eadbd2] bg-white/70 p-5 shadow-sm"
-              >
+              <div key={service.id} className="flex h-full min-h-44 flex-col rounded-3xl border border-[#eadbd2] bg-white/70 p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   {group ? (
-                    <p className="text-xs uppercase tracking-[0.2em] text-[#9b6f5b]">
-                      {group}
-                    </p>
-                  ) : null}
-
+                    <p className="text-xs uppercase tracking-[0.2em] text-[#9b6f5b]">{group}</p>
+                  ) : <span />}
                   {service.is_online_bookable ? (
-                    <span className="rounded-full bg-[#2f2723] px-2.5 py-1 text-xs font-semibold text-white">
-                      {t.bookableBadge}
-                    </span>
+                    <span className="shrink-0 rounded-full bg-[#2f2723] px-2.5 py-1 text-xs font-semibold text-white">{t.bookableBadge}</span>
                   ) : null}
                 </div>
-
-                <h4 className="mt-3 text-lg font-semibold">
-                  {getServiceName(service, lang)}
-                </h4>
+                <h4 className="mt-3 text-lg font-semibold leading-snug">{getServiceName(service, lang)}</h4>
+                {description ? (
+                  <p className="mt-2 overflow-hidden text-sm leading-6 text-[#6f5a50] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                    {description}
+                  </p>
+                ) : null}
               </div>
             );
           })}
@@ -458,18 +381,8 @@ export default async function HomePage({
         <div className="mt-10 rounded-3xl border border-[#eadbd2] bg-white/70 p-6">
           <p className="leading-7 text-[#6f5a50]">{t.onlineNote}</p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href={`/booking?lang=${lang}`}
-              className="inline-flex justify-center rounded-full bg-[#2f2723] px-6 py-3 font-semibold text-white"
-            >
-              {t.onlineBooking}
-            </Link>
-            <a
-              href="#kontakt"
-              className="inline-flex justify-center rounded-full border border-[#c9a997] px-6 py-3 font-semibold text-[#2f2723]"
-            >
-              {t.directContact}
-            </a>
+            <Link href={`/booking?lang=${lang}`} className="inline-flex justify-center rounded-full bg-[#2f2723] px-6 py-3 font-semibold text-white">{t.onlineBooking}</Link>
+            <a href="#kontakt" className="inline-flex justify-center rounded-full border border-[#c9a997] px-6 py-3 font-semibold text-[#2f2723]">{t.directContact}</a>
           </div>
         </div>
       </section>
@@ -477,28 +390,14 @@ export default async function HomePage({
       <section id="o-nama" className="bg-white/60 px-6 py-24">
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="overflow-hidden rounded-[2rem] border border-[#eadbd2] bg-[#f8f3ef] p-3 shadow-xl">
-            <Image
-              src="/images/elizabeth.jpg"
-              alt="Elizabeth Dobrović"
-              width={700}
-              height={800}
-              className="h-[520px] w-full rounded-[1.5rem] object-cover"
-            />
+            <Image src="/images/elizabeth.jpg" alt="Elizabeth Dobrović" width={700} height={800} className="h-[520px] w-full rounded-[1.5rem] object-cover" />
           </div>
-
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#9b6f5b]">
-              {t.aboutEyebrow}
-            </p>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#9b6f5b]">{t.aboutEyebrow}</p>
             <h3 className="mt-3 text-4xl font-semibold">{t.aboutTitle}</h3>
-            <p className="mt-6 text-lg leading-9 text-[#6f5a50]">
-              {t.aboutText}
-            </p>
-
+            <p className="mt-6 text-lg leading-9 text-[#6f5a50]">{t.aboutText}</p>
             <div className="mt-8 rounded-3xl border border-[#eadbd2] bg-white/70 p-6">
-              <p className="text-sm uppercase tracking-[0.25em] text-[#9b6f5b]">
-                {t.ownerLabel}
-              </p>
+              <p className="text-sm uppercase tracking-[0.25em] text-[#9b6f5b]">{t.ownerLabel}</p>
               <p className="mt-2 text-2xl font-semibold">Elizabeth Dobrović</p>
             </div>
           </div>
@@ -509,63 +408,23 @@ export default async function HomePage({
         <div className="rounded-[2rem] bg-[#2f2723] p-8 text-white md:p-12">
           <div className="grid gap-10 md:grid-cols-2">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#e8cfc0]">
-                {t.contactEyebrow}
-              </p>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#e8cfc0]">{t.contactEyebrow}</p>
               <h3 className="mt-3 text-4xl font-semibold">{t.contactTitle}</h3>
               <p className="mt-5 leading-8 text-[#eadbd2]">{t.contactText}</p>
             </div>
-
             <div className="space-y-4 text-[#eadbd2]">
-              <p className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-5 w-5" />
-                <span>{t.location}</span>
-              </p>
-              <p className="flex items-start gap-3">
-                <Phone className="mt-0.5 h-5 w-5" />
-                <a href="tel:+385993284199" className="hover:underline">
-                  {t.phone}
-                </a>
-              </p>
-              <p className="flex items-start gap-3">
-                <Clock className="mt-0.5 h-5 w-5" />
-                <span>
-                  {t.workingHoursLabel}: {workingHoursText}
-                </span>
-              </p>
+              <p className="flex items-start gap-3"><MapPin className="mt-0.5 h-5 w-5" /><span>{t.location}</span></p>
+              <p className="flex items-start gap-3"><Phone className="mt-0.5 h-5 w-5" /><a href="tel:+385993284199" className="hover:underline">{t.phone}</a></p>
+              <p className="flex items-start gap-3"><Clock className="mt-0.5 h-5 w-5" /><span>{t.workingHoursLabel}: {workingHoursText}</span></p>
               <div className="rounded-2xl border border-[#eadbd2]/20 bg-white/10 p-4 text-sm leading-6 text-[#eadbd2]">
-                <div className="font-semibold text-white">
-                  {lang === "en"
-                    ? "Booking with Elizabeth"
-                    : "Termin kod Elizabeth"}
-                </div>
-
+                <div className="font-semibold text-white">{lang === "en" ? "Booking with Elizabeth" : "Termin kod Elizabeth"}</div>
                 <p className="mt-1">{t.elizabethBookingNote}</p>
-
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                  <a
-                    href="tel:+385993284199"
-                    className="inline-flex justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#2f2723] transition hover:bg-[#eadbd2]"
-                  >
-                    {lang === "en" ? "Call salon" : "Nazovi salon"}
-                  </a>
-
-                  <a
-                    href="https://wa.me/385993284199"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex justify-center rounded-full border border-[#eadbd2]/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                  >
-                    WhatsApp
-                  </a>
+                  <a href="tel:+385993284199" className="inline-flex justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#2f2723] transition hover:bg-[#eadbd2]">{lang === "en" ? "Call salon" : "Nazovi salon"}</a>
+                  <a href="https://wa.me/385993284199" target="_blank" rel="noopener noreferrer" className="inline-flex justify-center rounded-full border border-[#eadbd2]/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">WhatsApp</a>
                 </div>
               </div>
-              <Link
-                href={`/booking?lang=${lang}`}
-                className="mt-6 inline-flex items-center justify-center rounded-full bg-white px-7 py-4 font-semibold text-[#2f2723] transition hover:bg-[#eadbd2]"
-              >
-                {t.openBooking}
-              </Link>
+              <Link href={`/booking?lang=${lang}`} className="mt-6 inline-flex items-center justify-center rounded-full bg-white px-7 py-4 font-semibold text-[#2f2723] transition hover:bg-[#eadbd2]">{t.openBooking}</Link>
             </div>
           </div>
         </div>
