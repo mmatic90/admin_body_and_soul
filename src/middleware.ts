@@ -23,7 +23,9 @@ function isPublicPage(pathname: string) {
 }
 
 function isPublicApi(pathname: string) {
-  return pathname.startsWith("/api/public/");
+  return (
+    pathname.startsWith("/api/public/") || pathname.startsWith("/api/cron/")
+  );
 }
 
 function isAdminPath(pathname: string) {
@@ -59,10 +61,6 @@ export async function middleware(request: NextRequest) {
 
   /*
    * 2. Na javnoj domeni admin stranice prebaci na admin domenu.
-   *
-   * Primjer:
-   * www.bodyandsoul.hr/dashboard
-   * → admin.bodyandsoul.hr/dashboard
    */
   if (isProductionPublicDomain && isAdminPath(pathname)) {
     const url = request.nextUrl.clone();
@@ -74,9 +72,7 @@ export async function middleware(request: NextRequest) {
   }
 
   /*
-   * 3. Na admin domeni javne stranice prebaci na www domenu.
-   *
-   * Iznimka je "/", koja vodi na dashboard.
+   * 3. Na admin domeni "/" vodi na dashboard.
    */
   if (isProductionAdminDomain && pathname === "/") {
     const url = request.nextUrl.clone();
@@ -86,6 +82,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  /*
+   * 4. Na admin domeni booking stranice prebaci na javnu domenu.
+   */
   if (
     isProductionAdminDomain &&
     (pathname === "/booking" || pathname.startsWith("/booking/"))
@@ -99,10 +98,8 @@ export async function middleware(request: NextRequest) {
   }
 
   /*
-   * 4. Na javnoj domeni ne dopuštaj druge aplikacijske stranice.
-   *
-   * Ako se naknadno dodaju nove javne stranice, potrebno ih je dodati
-   * u funkciju isPublicPage().
+   * 5. Na javnoj domeni ne dopuštaj druge aplikacijske stranice,
+   * ali dopusti javne API i cron rute.
    */
   if (
     isProductionPublicDomain &&
@@ -118,9 +115,7 @@ export async function middleware(request: NextRequest) {
   }
 
   /*
-   * 5. Supabase session middleware.
-   *
-   * Ovaj dio je zadržan iz postojećeg middlewarea.
+   * 6. Supabase session middleware.
    */
   let response = NextResponse.next({
     request,
