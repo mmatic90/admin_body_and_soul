@@ -6,6 +6,7 @@ import { getCurrentUserPermissions } from "@/lib/permissions";
 import { sendFeedbackNotificationEmail } from "@/lib/email/feedback-email";
 import {
   createFeedbackSchema,
+  feedbackIdSchema,
   updateFeedbackSchema,
 } from "@/features/feedback/validation";
 import type { FeedbackActionResult } from "@/features/feedback/types";
@@ -17,6 +18,9 @@ const ALLOWED_SCREENSHOT_TYPES = new Set([
   "image/webp",
 ]);
 
+const DONE_RETENTION_DAYS = 90;
+const REJECTED_RETENTION_DAYS = 30;
+
 function formValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : undefined;
@@ -26,6 +30,31 @@ function safeFileExtension(file: File) {
   if (file.type === "image/png") return "png";
   if (file.type === "image/webp") return "webp";
   return "jpg";
+}
+
+async function requireSystemDeveloper() {
+  const permissions = await getCurrentUserPermissions();
+  if (!permissions?.isSystemDeveloper) return null;
+  return permissions;
+}
+
+async function deleteFeedbackRecords(ids: string[], screenshotPaths: string[]) {
+  const supabase = createAdminClient();
+
+  if (screenshotPaths.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from("feedback")
+      .remove(screenshotPaths);
+
+    if (storageError) throw new Error(`Screenshot nije obrisan: ${storageError.message}`);
+  }
+
+  const { error: deleteError } = await supabase
+    .from("feedback")
+    .delete()
+    .in("id", ids);
+
+  if (deleteError) throw new Error(deleteError.message);
 }
 
 export async function createFeedback(
@@ -147,9 +176,9 @@ export async function createFeedback(
 export async function updateFeedback(
   input: unknown,
 ): Promise<FeedbackActionResult> {
-  const permissions = await getCurrentUserPermissions();
+  const permissions = await requireSystemDeveloper();
 
-  if (!permissions?.isSystemDeveloper) {
+  if (!permissions) {
     return { ok: false, error: "Nemate dopuštenje za ovu radnju." };
   }
 
@@ -172,4 +201,72 @@ export async function updateFeedback(
   revalidatePath("/dashboard/feedback");
   revalidatePath(`/dashboard/feedback/${parsed.data.id}`);
   return { ok: true, feedbackId: parsed.data.id };
+}
+
+export async function deleteFeedback(id: string): Promise<FeedbackActionResult> {
+  const permissions = await requireSystemDeveloper();
+  if (!permissions) return { ok: false, error: "Nemate dopuštenje za ovu radnju." };
+
+  const parsedId = feedbackIdSchema.safeParse(id);
+  if (!parsedId.success) return { ok: false, error: "Neispravan feedback ID." };
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("feedback")
+    .select("id, screenshot_path")
+    .eq("id", parsedId.data)
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Feedback više ne postoji." };
+
+  try {
+    await deleteFeedbackRecords(
+      [data.id],
+      data.screenshot_path ? [data.screenshot_path] : [],
+    );
+  } catch (deleteError) {
+    return {
+      ok: false,
+      error: deleteError instanceof Error ? deleteError.message : "Feedback nije obrisan.",
+    };
+  }
+
+  revalidatePath("/dashboard/feedback");
+  return { ok: true, feedbackId: parsedId.data, deletedCount: 1 };
+}
+
+export async function cleanupOldFeedback(): Promise<FeedbackActionResult> {
+  const permissions = await requireSystemDeveloper();
+  if (!permissions) return { ok: false, error: "Nemate dopuštenje za ovu radnju." };
+
+  const now = Date.now();
+  const doneBefore = new Date(now - DONE_RETENTION_DAYS * 86400000).toISOString();
+  const rejectedBefore = new Date(now - REJECTED_RETENTION_DAYS * 86400000).toISOString();
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("feedback")
+    .select("id, screenshot_path, status, updated_at")
+    .or(`and(status.eq.done,updated_at.lt.${doneBefore}),and(status.eq.rejected,updated_at.lt.${rejectedBefore})`);
+
+  if (error) return { ok: false, error: error.message };
+
+  const candidates = data ?? [];
+  if (candidates.length === 0) return { ok: true, deletedCount: 0 };
+
+  try {
+    await deleteFeedbackRecords(
+      candidates.map((item) => item.id),
+      candidates.flatMap((item) => item.screenshot_path ? [item.screenshot_path] : []),
+    );
+  } catch (cleanupError) {
+    return {
+      ok: false,
+      error: cleanupError instanceof Error ? cleanupError.message : "Čišćenje nije uspjelo.",
+    };
+  }
+
+  revalidatePath("/dashboard/feedback");
+  return { ok: true, deletedCount: candidates.length };
 }
