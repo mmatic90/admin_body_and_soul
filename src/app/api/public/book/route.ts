@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 type Slot = {
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data: service, error: serviceError } = await supabase
       .from("services")
@@ -96,8 +96,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Spriječi dupli klik / dupli submit:
-    // isti broj + ista usluga + isti datum + isto vrijeme unutar zadnjih 60 sekundi
     const { data: recentDuplicateRequest, error: recentDuplicateError } =
       await supabase
         .from("online_booking_requests")
