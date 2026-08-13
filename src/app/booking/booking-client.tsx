@@ -504,7 +504,7 @@ export default function BookingClient({ services, lang }: { services: Service[];
                   <section className="rounded-[1.75rem] border border-[#eadbd2] bg-white p-6 md:p-8">
                     <h3 className="text-xl font-semibold">{t.contactTitle}</h3>
                     <p className="mt-3 text-sm leading-6 text-[#6f5a50]">{t.contactText}</p>
-                    {selectedTherapist ? <p className="mt-3 text-sm"><span className="text-[#6f5a50]">{t.therapistLabel}: </span><span className="font-semibold">{selectedTherapist.display_name}</span></p> : null}
+                    {selectedTherapist && selectedService.therapists.length > 1 ? <p className="mt-3 text-sm"><span className="text-[#6f5a50]">{t.therapistLabel}: </span><span className="font-semibold">{selectedTherapist.display_name}</span></p> : null}
                     {selectedSlot ? <div className="mt-5 rounded-xl bg-[#f8f3ef] p-4 text-sm text-[#6f5a50]">{t.selectedSlot}: <span className="font-semibold text-[#2f2723]">{formatDateDisplay(selectedDate, lang)} {selectedSlot.start_time} - {selectedSlot.end_time}</span></div> : null}
                     <input placeholder={t.fullName} value={fullName} onChange={(e) => setFullName(e.target.value)} className="mt-5 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none" />
                     <input placeholder={t.phone} value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-4 w-full rounded-xl border border-[#eadbd2] px-4 py-3 outline-none" />
