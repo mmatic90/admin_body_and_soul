@@ -13,7 +13,6 @@ type Slot = {
 
 export async function POST(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
-
   const ip =
     forwardedFor?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
@@ -35,23 +34,33 @@ export async function POST(request: Request) {
       { status: 429 },
     );
   }
+
   try {
     const body = await request.json();
-
     const serviceId = String(body.serviceId ?? "").trim();
     const date = String(body.date ?? "").trim();
-
     const fullName = String(body.fullName ?? "").trim();
     const phone = String(body.phone ?? "").trim();
     const email = String(body.email ?? "").trim() || null;
     const note = String(body.note ?? "").trim() || null;
     const lang = body.lang === "en" ? "en" : "hr";
-
     const slot = body.slot as Slot | null;
 
     if (!serviceId || !date || !fullName || (!phone && !email) || !slot) {
       return NextResponse.json(
         { error: "Ime, kontakt podatak, usluga, datum i termin su obavezni." },
+        { status: 400 },
+      );
+    }
+
+    if (
+      !slot.employee_id ||
+      !slot.room_id ||
+      !slot.start_time ||
+      !slot.end_time
+    ) {
+      return NextResponse.json(
+        { error: "Odabrani termin nije valjan." },
         { status: 400 },
       );
     }
@@ -74,25 +83,56 @@ export async function POST(request: Request) {
 
     const supabase = createAdminClient();
 
-    const { data: service, error: serviceError } = await supabase
-      .from("services")
-      .select("id, duration_minutes, is_active, is_online_bookable")
-      .eq("id", serviceId)
-      .eq("is_active", true)
-      .eq("is_online_bookable", true)
-      .maybeSingle();
+    const [
+      { data: service, error: serviceError },
+      { data: employeeService, error: employeeServiceError },
+      { data: employee, error: employeeError },
+    ] = await Promise.all([
+      supabase
+        .from("services")
+        .select("id, duration_minutes, is_active, is_online_bookable")
+        .eq("id", serviceId)
+        .eq("is_active", true)
+        .eq("is_online_bookable", true)
+        .maybeSingle(),
+      supabase
+        .from("employee_services")
+        .select("employee_id")
+        .eq("service_id", serviceId)
+        .eq("employee_id", slot.employee_id)
+        .maybeSingle(),
+      supabase
+        .from("employees")
+        .select("id, is_active")
+        .eq("id", slot.employee_id)
+        .eq("is_active", true)
+        .maybeSingle(),
+    ]);
 
     if (serviceError) {
+      return NextResponse.json({ error: serviceError.message }, { status: 500 });
+    }
+    if (employeeServiceError) {
       return NextResponse.json(
-        { error: serviceError.message },
+        { error: employeeServiceError.message },
         { status: 500 },
       );
+    }
+    if (employeeError) {
+      return NextResponse.json({ error: employeeError.message }, { status: 500 });
     }
 
     if (!service) {
       return NextResponse.json(
         { error: "Odabrana usluga nije dostupna za online rezervacije." },
         { status: 404 },
+      );
+    }
+
+    if (!employeeService || !employee) {
+      return NextResponse.json(
+        { error: "Odabrani terapeut ne može raditi ovu uslugu." },
+        { status: 400 },
       );
     }
 
@@ -183,20 +223,16 @@ export async function POST(request: Request) {
         start_time: slot.start_time,
         end_time: slot.end_time,
         duration_minutes: service.duration_minutes,
-
         suggested_employee_id: slot.employee_id,
         suggested_room_id: slot.room_id,
-
         final_employee_id: slot.employee_id,
         final_room_id: slot.room_id,
         final_duration_minutes: service.duration_minutes,
-
         client_full_name: fullName,
         client_phone: phone,
         client_email: email,
         client_note: note,
         language: lang,
-
         status: "pending",
       })
       .select("id")
@@ -221,7 +257,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(error);
-
     return NextResponse.json({ error: "Server error." }, { status: 500 });
   }
 }
