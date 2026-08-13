@@ -15,6 +15,7 @@ export type PublicBookingService = {
   price_cents: number | null;
   price_min_cents: number | null;
   price_max_cents: number | null;
+  display_order: number | null;
   service_group: string | null;
   service_group_en: string | null;
   therapists: PublicBookingTherapist[];
@@ -41,6 +42,7 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
           price_cents,
           price_min_cents,
           price_max_cents,
+          display_order,
           service_group,
           service_group_en
         `,
@@ -48,6 +50,7 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
       .eq("is_active", true)
       .eq("is_online_bookable", true)
       .order("service_group", { ascending: true })
+      .order("display_order", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true }),
 
     supabase.from("employee_services").select("employee_id, service_id"),
