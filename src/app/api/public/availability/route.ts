@@ -6,6 +6,7 @@ import type { AppointmentServiceInput } from "@/features/appointments/types";
 type PublicAvailabilityBody = {
   date?: string;
   serviceId?: string;
+  employeeId?: string;
 };
 
 export async function POST(request: Request) {
@@ -23,6 +24,8 @@ export async function POST(request: Request) {
   const date = typeof body.date === "string" ? body.date : "";
   const serviceId =
     typeof body.serviceId === "string" ? body.serviceId.trim() : "";
+  const employeeId =
+    typeof body.employeeId === "string" ? body.employeeId.trim() : "";
 
   if (!date || !serviceId) {
     return NextResponse.json(
@@ -67,7 +70,18 @@ export async function POST(request: Request) {
       maxSuggestions: 999,
     });
 
-    return NextResponse.json(result);
+    const suggestions = employeeId
+      ? result.suggestions.filter((slot) => slot.employee_id === employeeId)
+      : result.suggestions;
+
+    return NextResponse.json({
+      ...result,
+      suggestions,
+      reason:
+        suggestions.length === 0 && employeeId
+          ? "Odabrani terapeut nema slobodnih termina na taj datum."
+          : result.reason,
+    });
   } catch (error) {
     return NextResponse.json(
       {
