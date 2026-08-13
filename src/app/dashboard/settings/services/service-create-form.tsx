@@ -1,13 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
-import {
-  createServiceAction,
-  type SettingsActionState,
-} from "@/features/settings/actions";
-import { useEffect } from "react";
-import { toast } from "sonner";
+import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  createServiceWithPricingAction,
+} from "@/features/settings/service-pricing-actions";
+import type { SettingsActionState } from "@/features/settings/actions";
 
 const initialState: SettingsActionState = {
   error: "",
@@ -16,51 +15,56 @@ const initialState: SettingsActionState = {
 
 export default function ServiceCreateForm() {
   const [state, formAction, pending] = useActionState(
-    createServiceAction,
+    createServiceWithPricingAction,
     initialState,
   );
   const router = useRouter();
 
   useEffect(() => {
-    if (state.error) {
-      toast.error(state.error);
-    }
-
+    if (state.error) toast.error(state.error);
     if (state.success) {
       toast.success(state.success);
       router.refresh();
     }
   }, [state, router]);
 
+  const inputClass =
+    "rounded-xl border border-neutral-300 px-4 py-3 outline-none";
+
   return (
-    <form
-      action={formAction}
-      className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-    >
-      <input
-        name="name"
-        placeholder="Naziv usluge"
-        className="rounded-xl border border-neutral-300 px-4 py-3 outline-none"
-        required
-      />
+    <form action={formAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <input name="name" placeholder="Naziv usluge (HR)" className={inputClass} required />
+      <input name="name_en" placeholder="Naziv usluge (EN)" className={inputClass} />
       <input
         name="duration_minutes"
         type="number"
         min={1}
         placeholder="Trajanje (min)"
-        className="rounded-xl border border-neutral-300 px-4 py-3 outline-none"
+        className={inputClass}
         required
       />
-      <input
-        name="service_group"
-        placeholder="Grupa usluge"
-        className="rounded-xl border border-neutral-300 px-4 py-3 outline-none"
+      <input name="priority_room" placeholder="Prioritetna soba" className={inputClass} />
+
+      <textarea
+        name="description"
+        placeholder="Opis usluge (HR)"
+        rows={3}
+        className="rounded-xl border border-neutral-300 px-4 py-3 outline-none md:col-span-2"
       />
-      <input
-        name="priority_room"
-        placeholder="Prioritetna soba"
-        className="rounded-xl border border-neutral-300 px-4 py-3 outline-none"
+      <textarea
+        name="description_en"
+        placeholder="Opis usluge (EN)"
+        rows={3}
+        className="rounded-xl border border-neutral-300 px-4 py-3 outline-none md:col-span-2"
       />
+
+      <input name="service_group" placeholder="Kategorija (HR)" className={inputClass} />
+      <input name="service_group_en" placeholder="Kategorija (EN)" className={inputClass} />
+      <input name="price_eur" type="number" min={0} step="0.01" placeholder="Fiksna cijena (€)" className={inputClass} />
+      <div className="grid grid-cols-2 gap-2">
+        <input name="price_min_eur" type="number" min={0} step="0.01" placeholder="Min (€)" className={inputClass} />
+        <input name="price_max_eur" type="number" min={0} step="0.01" placeholder="Max (€)" className={inputClass} />
+      </div>
 
       <div className="md:col-span-2 xl:col-span-4 flex justify-end">
         <button
