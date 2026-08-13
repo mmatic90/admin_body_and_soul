@@ -17,6 +17,7 @@ export async function getServicesWithPriceRange(): Promise<ServiceItem[]> {
         price_cents,
         price_min_cents,
         price_max_cents,
+        display_order,
         service_group,
         service_group_en,
         priority_room,
@@ -24,6 +25,8 @@ export async function getServicesWithPriceRange(): Promise<ServiceItem[]> {
         is_online_bookable
       `,
     )
+    .order("service_group", { ascending: true })
+    .order("display_order", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
 
   if (error) {
