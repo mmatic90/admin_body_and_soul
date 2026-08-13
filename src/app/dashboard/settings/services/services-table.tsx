@@ -3,27 +3,25 @@
 import { useMemo, useState, useTransition } from "react";
 import { RotateCcw } from "lucide-react";
 import type { ServiceItem } from "@/features/settings/types";
-import {
-  bulkUpdateServicesAction,
-  deleteServiceAction,
-} from "@/features/settings/actions";
+import { bulkUpdateServicesWithPricingAction } from "@/features/settings/service-pricing-actions";
+import { deleteServiceAction } from "@/features/settings/actions";
 import SettingsDeleteButton from "@/components/settings-delete-button";
 import { toast } from "sonner";
 
-type Props = {
-  services: ServiceItem[];
-};
+type Props = { services: ServiceItem[] };
 
 type EditableService = {
   id: string;
   name: string;
-  description: string;
   name_en: string;
+  description: string;
   description_en: string;
-  service_group_en: string;
   duration_minutes: number;
   price_cents: number | null;
+  price_min_cents: number | null;
+  price_max_cents: number | null;
   service_group: string;
+  service_group_en: string;
   priority_room: string;
   is_active: boolean;
   is_online_bookable: boolean;
@@ -33,109 +31,85 @@ function toEditable(service: ServiceItem): EditableService {
   return {
     id: service.id,
     name: service.name,
-    description: service.description ?? "",
     name_en: service.name_en ?? "",
+    description: service.description ?? "",
     description_en: service.description_en ?? "",
-    service_group_en: service.service_group_en ?? "",
     duration_minutes: service.duration_minutes,
     price_cents: service.price_cents,
-    service_group: service.service_group || "",
-    priority_room: service.priority_room || "",
+    price_min_cents: service.price_min_cents,
+    price_max_cents: service.price_max_cents,
+    service_group: service.service_group ?? "",
+    service_group_en: service.service_group_en ?? "",
+    priority_room: service.priority_room ?? "",
     is_active: service.is_active,
     is_online_bookable: service.is_online_bookable,
   };
 }
 
-function priceCentsToInputValue(priceCents: number | null) {
-  if (priceCents == null) return "";
-  return String(Math.round(priceCents / 100));
+function centsToInput(value: number | null) {
+  return value == null ? "" : String(value / 100);
 }
 
-function priceInputToCents(value: string) {
+function inputToCents(value: string) {
   if (!value.trim()) return null;
-
-  const parsed = Number(value);
-
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return null;
-  }
-
-  return Math.round(parsed * 100);
+  const parsed = Number(value.replace(",", "."));
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) : null;
 }
 
 export default function ServicesTable({ services }: Props) {
   const initialItems = useMemo(() => services.map(toEditable), [services]);
-
   const [items, setItems] = useState<EditableService[]>(initialItems);
   const [pending, startTransition] = useTransition();
-
   const hasChanges = JSON.stringify(items) !== JSON.stringify(initialItems);
 
-  function updateItem(
+  function updateItem<K extends keyof EditableService>(
     id: string,
-    field: keyof EditableService,
-    value: string | number | boolean | null,
+    field: K,
+    value: EditableService[K],
   ) {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
     );
   }
 
-  function resetChanges() {
-    setItems(initialItems);
-  }
-
   function saveChanges() {
     startTransition(async () => {
-      const result = await bulkUpdateServicesAction(
+      const result = await bulkUpdateServicesWithPricingAction(
         items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          name_en: item.name_en,
-          description_en: item.description_en,
-          service_group_en: item.service_group_en,
-          duration_minutes: Number(item.duration_minutes),
-          price_cents: item.price_cents,
+          ...item,
           service_group: item.service_group || null,
           priority_room: item.priority_room || null,
-          is_active: item.is_active,
-          is_online_bookable: item.is_online_bookable,
         })),
       );
 
-      if (result.ok) {
-        toast.success(result.message);
-      } else {
-        toast.error(result.message);
-      }
+      if (result.ok) toast.success(result.message);
+      else toast.error(result.message);
     });
   }
+
+  const inputClass =
+    "w-full rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent";
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-app-muted">
-          Uredi podatke u tablici pa klikni{" "}
-          <span className="font-medium text-app-text">Spremi izmjene</span>.
+          Za raspon cijene ostavi fiksnu cijenu praznom i unesi Min + Max.
         </div>
-
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={resetChanges}
+            onClick={() => setItems(initialItems)}
             disabled={pending || !hasChanges}
-            className="inline-flex items-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-2 text-sm font-medium text-app-text transition hover:bg-app-bg disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-2 text-sm font-medium disabled:opacity-50"
           >
-            <RotateCcw className="h-4 w-4" />
-            Poništi
+            <RotateCcw className="h-4 w-4" /> Poništi
           </button>
-
           <button
             type="button"
             onClick={saveChanges}
             disabled={pending || !hasChanges}
-            className="rounded-xl bg-app-accent px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+            className="rounded-xl bg-app-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             {pending ? "Spremanje..." : "Spremi izmjene"}
           </button>
@@ -143,163 +117,60 @@ export default function ServicesTable({ services }: Props) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-app-soft">
-        <table className="min-w-full border-collapse">
+        <table className="min-w-[1900px] border-collapse">
           <thead className="bg-app-table-head">
             <tr className="text-left text-sm text-app-muted">
-              <th className="px-4 py-3 font-semibold">Naziv</th>
-              <th className="px-4 py-3 font-semibold">Opis</th>
-              <th className="px-4 py-3 font-semibold">Trajanje</th>
-              <th className="px-4 py-3 font-semibold">Cijena (€)</th>
-              <th className="px-4 py-3 font-semibold">Grupa</th>
-              <th className="px-4 py-3 font-semibold">Prioritetna soba</th>
-              <th className="px-4 py-3 font-semibold">Aktivno</th>
-              <th className="px-4 py-3 font-semibold">Online rezervacije</th>
-              <th className="px-4 py-3 font-semibold">Akcije</th>
+              <th className="px-4 py-3">Naziv HR / EN</th>
+              <th className="px-4 py-3">Opis HR / EN</th>
+              <th className="px-4 py-3">Trajanje</th>
+              <th className="px-4 py-3">Fiksna €</th>
+              <th className="px-4 py-3">Min €</th>
+              <th className="px-4 py-3">Max €</th>
+              <th className="px-4 py-3">Kategorija HR / EN</th>
+              <th className="px-4 py-3">Prioritetna soba</th>
+              <th className="px-4 py-3">Aktivno</th>
+              <th className="px-4 py-3">Online</th>
+              <th className="px-4 py-3">Akcije</th>
             </tr>
           </thead>
-
           <tbody className="bg-app-card">
             {items.map((service) => (
-              <tr
-                key={service.id}
-                className="border-t border-app-soft text-sm transition hover:bg-app-card-alt"
-              >
-                <td className="px-4 py-4">
-                  <input
-                    value={service.name}
-                    onChange={(e) =>
-                      updateItem(service.id, "name", e.target.value)
-                    }
-                    className="w-full min-w-[220px] rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent"
-                  />
+              <tr key={service.id} className="border-t border-app-soft align-top text-sm">
+                <td className="space-y-2 px-4 py-4">
+                  <input value={service.name} onChange={(e) => updateItem(service.id, "name", e.target.value)} className={inputClass} placeholder="HR" />
+                  <input value={service.name_en} onChange={(e) => updateItem(service.id, "name_en", e.target.value)} className={inputClass} placeholder="EN" />
                 </td>
-
-                <td className="px-4 py-4">
-                  <textarea
-                    value={service.description}
-                    onChange={(e) =>
-                      updateItem(service.id, "description", e.target.value)
-                    }
-                    rows={2}
-                    className="w-full min-w-[280px] rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none"
-                  />
+                <td className="space-y-2 px-4 py-4">
+                  <textarea value={service.description} onChange={(e) => updateItem(service.id, "description", e.target.value)} rows={3} className={`${inputClass} min-w-[300px]`} placeholder="Opis HR" />
+                  <textarea value={service.description_en} onChange={(e) => updateItem(service.id, "description_en", e.target.value)} rows={3} className={`${inputClass} min-w-[300px]`} placeholder="Description EN" />
                 </td>
-
                 <td className="px-4 py-4">
-                  <input
-                    type="number"
-                    min={1}
-                    value={service.duration_minutes}
-                    onChange={(e) =>
-                      updateItem(
-                        service.id,
-                        "duration_minutes",
-                        Number(e.target.value),
-                      )
-                    }
-                    className="w-28 rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent"
-                  />
+                  <input type="number" min={1} value={service.duration_minutes} onChange={(e) => updateItem(service.id, "duration_minutes", Number(e.target.value))} className={`${inputClass} w-24`} />
                 </td>
-
                 <td className="px-4 py-4">
-                  <input
-                    type="number"
-                    min={0}
-                    step="1"
-                    value={priceCentsToInputValue(service.price_cents)}
-                    onChange={(e) =>
-                      updateItem(
-                        service.id,
-                        "price_cents",
-                        priceInputToCents(e.target.value),
-                      )
-                    }
-                    placeholder="npr. 45"
-                    className="w-32 rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent"
-                  />
+                  <input type="number" min={0} step="0.01" value={centsToInput(service.price_cents)} onChange={(e) => updateItem(service.id, "price_cents", inputToCents(e.target.value))} className={`${inputClass} w-24`} />
                 </td>
-
                 <td className="px-4 py-4">
-                  <input
-                    value={service.service_group}
-                    onChange={(e) =>
-                      updateItem(service.id, "service_group", e.target.value)
-                    }
-                    className="w-full min-w-[180px] rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent"
-                  />
+                  <input type="number" min={0} step="0.01" value={centsToInput(service.price_min_cents)} onChange={(e) => updateItem(service.id, "price_min_cents", inputToCents(e.target.value))} className={`${inputClass} w-24`} />
                 </td>
-
                 <td className="px-4 py-4">
-                  <input
-                    value={service.priority_room}
-                    onChange={(e) =>
-                      updateItem(service.id, "priority_room", e.target.value)
-                    }
-                    className="w-full min-w-[160px] rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent"
-                  />
+                  <input type="number" min={0} step="0.01" value={centsToInput(service.price_max_cents)} onChange={(e) => updateItem(service.id, "price_max_cents", inputToCents(e.target.value))} className={`${inputClass} w-24`} />
                 </td>
-
-                <td className="px-4 py-4">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={service.is_active}
-                    onClick={() =>
-                      updateItem(service.id, "is_active", !service.is_active)
-                    }
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                      service.is_active ? "bg-app-accent" : "bg-app-soft"
-                    }`}
-                    title={service.is_active ? "Aktivno" : "Neaktivno"}
-                  >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                        service.is_active ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
+                <td className="space-y-2 px-4 py-4">
+                  <input value={service.service_group} onChange={(e) => updateItem(service.id, "service_group", e.target.value)} className={`${inputClass} min-w-[180px]`} placeholder="HR" />
+                  <input value={service.service_group_en} onChange={(e) => updateItem(service.id, "service_group_en", e.target.value)} className={`${inputClass} min-w-[180px]`} placeholder="EN" />
                 </td>
-
                 <td className="px-4 py-4">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={service.is_online_bookable}
-                    onClick={() =>
-                      updateItem(
-                        service.id,
-                        "is_online_bookable",
-                        !service.is_online_bookable,
-                      )
-                    }
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                      service.is_online_bookable
-                        ? "bg-app-accent"
-                        : "bg-app-soft"
-                    }`}
-                    title={
-                      service.is_online_bookable
-                        ? "Dostupno za online rezervacije"
-                        : "Nije dostupno za online rezervacije"
-                    }
-                  >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                        service.is_online_bookable
-                          ? "translate-x-6"
-                          : "translate-x-1"
-                      }`}
-                    />
-                  </button>
+                  <input value={service.priority_room} onChange={(e) => updateItem(service.id, "priority_room", e.target.value)} className={`${inputClass} min-w-[160px]`} />
                 </td>
-
                 <td className="px-4 py-4">
-                  <div className="flex items-center gap-2">
-                    <SettingsDeleteButton
-                      label={service.name}
-                      onDelete={deleteServiceAction.bind(null, service.id)}
-                    />
-                  </div>
+                  <Toggle value={service.is_active} onChange={() => updateItem(service.id, "is_active", !service.is_active)} />
+                </td>
+                <td className="px-4 py-4">
+                  <Toggle value={service.is_online_bookable} onChange={() => updateItem(service.id, "is_online_bookable", !service.is_online_bookable)} />
+                </td>
+                <td className="px-4 py-4">
+                  <SettingsDeleteButton label={service.name} onDelete={deleteServiceAction.bind(null, service.id)} />
                 </td>
               </tr>
             ))}
@@ -307,5 +178,25 @@ export default function ServicesTable({ services }: Props) {
         </table>
       </div>
     </div>
+  );
+}
+
+function Toggle({ value, onChange }: { value: boolean; onChange: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
+      onClick={onChange}
+      className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+        value ? "bg-app-accent" : "bg-app-soft"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+          value ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
   );
 }
