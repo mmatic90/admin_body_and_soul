@@ -6,6 +6,8 @@ export type ServiceItem = {
   description_en: string | null;
   duration_minutes: number;
   price_cents: number | null;
+  price_min_cents: number | null;
+  price_max_cents: number | null;
   service_group: string | null;
   service_group_en: string | null;
   priority_room: string | null;
