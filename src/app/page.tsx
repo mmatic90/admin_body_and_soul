@@ -70,8 +70,6 @@ const content = {
     workingHoursFallback: "Radno vrijeme prema narudžbi",
     workingHoursLabel: "Radno vrijeme",
     bookableBadge: "Online",
-    elizabethBookingNote:
-      "Za rezervaciju termina kod Elizabeth potrebno je javiti se telefonski ili putem WhatsApp poruke na broj salona.",
   },
   en: {
     otherLangLabel: "HR",
@@ -111,8 +109,6 @@ const content = {
     workingHoursFallback: "Working hours by appointment",
     workingHoursLabel: "Working hours",
     bookableBadge: "Online",
-    elizabethBookingNote:
-      "To book an appointment with Elizabeth, please contact the salon by phone or WhatsApp message.",
   },
 };
 
@@ -416,14 +412,6 @@ export default async function HomePage({
               <p className="flex items-start gap-3"><MapPin className="mt-0.5 h-5 w-5" /><span>{t.location}</span></p>
               <p className="flex items-start gap-3"><Phone className="mt-0.5 h-5 w-5" /><a href="tel:+385993284199" className="hover:underline">{t.phone}</a></p>
               <p className="flex items-start gap-3"><Clock className="mt-0.5 h-5 w-5" /><span>{t.workingHoursLabel}: {workingHoursText}</span></p>
-              <div className="rounded-2xl border border-[#eadbd2]/20 bg-white/10 p-4 text-sm leading-6 text-[#eadbd2]">
-                <div className="font-semibold text-white">{lang === "en" ? "Booking with Elizabeth" : "Termin kod Elizabeth"}</div>
-                <p className="mt-1">{t.elizabethBookingNote}</p>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                  <a href="tel:+385993284199" className="inline-flex justify-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#2f2723] transition hover:bg-[#eadbd2]">{lang === "en" ? "Call salon" : "Nazovi salon"}</a>
-                  <a href="https://wa.me/385993284199" target="_blank" rel="noopener noreferrer" className="inline-flex justify-center rounded-full border border-[#eadbd2]/40 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">WhatsApp</a>
-                </div>
-              </div>
               <Link href={`/booking?lang=${lang}`} className="mt-6 inline-flex items-center justify-center rounded-full bg-white px-7 py-4 font-semibold text-[#2f2723] transition hover:bg-[#eadbd2]">{t.openBooking}</Link>
             </div>
           </div>
