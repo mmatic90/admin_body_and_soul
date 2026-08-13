@@ -17,9 +17,9 @@ where id = '7dc7e0b8-3857-451a-af00-69067d18a5c4';
 
 update public.services
 set
-  name = 'Nadusnica – depilacija voskom',
-  name_en = 'Upper Lip Waxing'
-where id = 'a4122728-1f54-44ec-bf6b-e55d1facfd06';
+  name = 'Pedikura + gel lak',
+  name_en = 'Pedicure + Gel Polish'
+where id = 'bd7e0a81-c5ae-4007-a702-7b85dc5b6638';
 
 -- Fail clearly if any other duplicate names remain after normalization.
 do $$
