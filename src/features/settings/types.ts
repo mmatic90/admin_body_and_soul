@@ -8,6 +8,7 @@ export type ServiceItem = {
   price_cents: number | null;
   price_min_cents: number | null;
   price_max_cents: number | null;
+  display_order: number | null;
   service_group: string | null;
   service_group_en: string | null;
   priority_room: string | null;
