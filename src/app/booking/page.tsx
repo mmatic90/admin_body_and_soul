@@ -20,7 +20,7 @@ function getLang(searchParams?: { lang?: string | string[] }): Lang {
     ? searchParams?.lang[0]
     : searchParams?.lang;
 
-  return rawLang === "hr" ? "hr" : "en";
+  return rawLang === "en" ? "en" : "hr";
 }
 
 function time(value: string | null) {
@@ -178,42 +178,44 @@ export default async function BookingPage({
 
               <p className="mt-5 leading-8 text-[#eadbd2]">{t.intro}</p>
 
-              <div className="mt-8 rounded-3xl border border-white/10 bg-white/10 p-5">
-                <p className="text-sm leading-7 text-[#eadbd2]">{t.note}</p>
-              </div>
-
               <div className="mt-8 space-y-4 text-sm text-[#eadbd2]">
-                <p className="font-semibold text-white">{t.contact}</p>
-
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5" />
-                  <a href="tel:+385993284199" className="hover:underline">
-                    {t.phone}
-                  </a>
+                <div className="flex items-start gap-3">
+                  <Clock className="mt-0.5 h-5 w-5 shrink-0" />
+                  <span>{workingHoursText}</span>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5" />
-                  {workingHoursText}
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-0.5 h-5 w-5 shrink-0" />
+                  <div>
+                    <div>{t.contact}</div>
+                    <a href={`tel:${t.phone.replace(/\s+/g, "")}`} className="font-semibold text-white">
+                      {t.phone}
+                    </a>
+                  </div>
                 </div>
               </div>
+
+              <p className="mt-8 rounded-2xl bg-white/10 p-4 text-sm leading-6 text-[#eadbd2]">
+                {t.note}
+              </p>
             </aside>
 
-            <div className="p-6 md:p-10 lg:p-12">
-              {services.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#d8b6a4] bg-[#f8f3ef] p-6 text-sm text-[#6f5a50]">
-                  {t.noServices}
-                </div>
-              ) : (
+            <div className="p-6 md:p-10">
+              {services.length > 0 ? (
                 <BookingClient services={services} lang={lang} />
+              ) : (
+                <p className="rounded-2xl bg-[#f8f3ef] p-6 text-[#6f5a50]">
+                  {t.noServices}
+                </p>
               )}
             </div>
           </div>
         </section>
       </div>
 
-      <CookieConsent />
-      <PublicFooter />
+      <div className="mx-auto mt-10 max-w-7xl">
+        <PublicFooter lang={lang} />
+      </div>
+      <CookieConsent lang={lang} />
     </main>
   );
 }
