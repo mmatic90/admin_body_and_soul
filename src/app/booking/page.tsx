@@ -74,9 +74,7 @@ function formatWorkingHours(
         ? labels[start.day_of_week]
         : `${labels[start.day_of_week]}-${labels[previous.day_of_week]}`;
 
-    grouped.push(
-      `${dayLabel} ${time(start.opens_at)}-${time(start.closes_at)}`,
-    );
+    grouped.push(`${dayLabel} ${time(start.opens_at)}-${time(start.closes_at)}`);
 
     if (current) {
       start = current;
@@ -213,9 +211,9 @@ export default async function BookingPage({
       </div>
 
       <div className="mx-auto mt-10 max-w-7xl">
-        <PublicFooter lang={lang} />
+        <PublicFooter />
       </div>
-      <CookieConsent lang={lang} />
+      <CookieConsent />
     </main>
   );
 }
