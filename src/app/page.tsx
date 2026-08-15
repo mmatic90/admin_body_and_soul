@@ -117,7 +117,7 @@ function getLang(searchParams?: { lang?: string | string[] }) {
     ? searchParams?.lang[0]
     : searchParams?.lang;
 
-  return rawLang === "hr" ? "hr" : "en";
+  return rawLang === "en" ? "en" : "hr";
 }
 
 function getServiceName(service: ServiceRow, lang: "hr" | "en") {
