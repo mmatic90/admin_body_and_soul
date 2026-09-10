@@ -164,10 +164,14 @@ export async function getSmartAvailability(options: {
 
   let allowedEmployeeIds: Set<string> | null = null;
   for (const serviceId of serviceIds) {
-    const current = serviceToEmployeeIds.get(serviceId) ?? new Set<string>();
-    allowedEmployeeIds = allowedEmployeeIds === null
-      ? new Set<string>(current)
-      : new Set<string>(Array.from(allowedEmployeeIds).filter((id) => current.has(id)));
+    const current: Set<string> = serviceToEmployeeIds.get(serviceId) ?? new Set<string>();
+    if (allowedEmployeeIds === null) {
+      allowedEmployeeIds = new Set<string>(current);
+    } else {
+      const previous: Set<string> = allowedEmployeeIds;
+      const filtered: string[] = [...previous].filter((id: string) => current.has(id));
+      allowedEmployeeIds = new Set<string>(filtered);
+    }
   }
 
   const serviceToRoomIds = new Map<string, Set<string>>();
@@ -178,10 +182,14 @@ export async function getSmartAvailability(options: {
 
   let allowedRoomIds: Set<string> | null = null;
   for (const serviceId of serviceIds) {
-    const current = serviceToRoomIds.get(serviceId) ?? new Set<string>();
-    allowedRoomIds = allowedRoomIds === null
-      ? new Set<string>(current)
-      : new Set<string>(Array.from(allowedRoomIds).filter((id) => current.has(id)));
+    const current: Set<string> = serviceToRoomIds.get(serviceId) ?? new Set<string>();
+    if (allowedRoomIds === null) {
+      allowedRoomIds = new Set<string>(current);
+    } else {
+      const previous: Set<string> = allowedRoomIds;
+      const filtered: string[] = [...previous].filter((id: string) => current.has(id));
+      allowedRoomIds = new Set<string>(filtered);
+    }
   }
 
   let allowedEmployees = ((employees ?? []) as EmployeeRow[]).filter(
