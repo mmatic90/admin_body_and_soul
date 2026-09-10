@@ -15,27 +15,18 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "Neispravan JSON payload." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Neispravan JSON payload." }, { status: 400 });
   }
 
   const date = typeof body.date === "string" ? body.date : "";
-  const serviceId =
-    typeof body.serviceId === "string" ? body.serviceId.trim() : "";
-  const employeeId =
-    typeof body.employeeId === "string" ? body.employeeId.trim() : "";
+  const serviceId = typeof body.serviceId === "string" ? body.serviceId.trim() : "";
+  const employeeId = typeof body.employeeId === "string" ? body.employeeId.trim() : "";
 
   if (!date || !serviceId) {
-    return NextResponse.json(
-      { error: "Datum i usluga su obavezni." },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Datum i usluga su obavezni." }, { status: 400 });
   }
 
   const supabase = await createClient();
-
   const { data: service, error: serviceError } = await supabase
     .from("services")
     .select("id, duration_minutes, is_active, is_online_bookable")
@@ -44,23 +35,15 @@ export async function POST(request: Request) {
     .eq("is_online_bookable", true)
     .maybeSingle();
 
-  if (serviceError) {
-    return NextResponse.json({ error: serviceError.message }, { status: 500 });
-  }
-
+  if (serviceError) return NextResponse.json({ error: serviceError.message }, { status: 500 });
   if (!service) {
-    return NextResponse.json(
-      { error: "Usluga nije dostupna za online rezervacije." },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Usluga nije dostupna za online rezervacije." }, { status: 404 });
   }
 
-  const items: AppointmentServiceInput[] = [
-    {
-      service_id: service.id,
-      duration_minutes: service.duration_minutes,
-    },
-  ];
+  const items: AppointmentServiceInput[] = [{
+    service_id: service.id,
+    duration_minutes: service.duration_minutes,
+  }];
 
   try {
     const result = await getSmartAvailability({
@@ -68,28 +51,19 @@ export async function POST(request: Request) {
       items,
       intervalMinutes: 30,
       maxSuggestions: 999,
+      employeeId: employeeId || undefined,
     });
-
-    const suggestions = employeeId
-      ? result.suggestions.filter((slot) => slot.employee_id === employeeId)
-      : result.suggestions;
 
     return NextResponse.json({
       ...result,
-      suggestions,
       reason:
-        suggestions.length === 0 && employeeId
-          ? "Odabrani terapeut nema slobodnih termina na taj datum."
+        result.suggestions.length === 0 && employeeId
+          ? result.reason || "Odabrani terapeut nema slobodnih termina na taj datum."
           : result.reason,
     });
   } catch (error) {
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Greška pri dohvaćanju dostupnosti.",
-      },
+      { error: error instanceof Error ? error.message : "Greška pri dohvaćanju dostupnosti." },
       { status: 500 },
     );
   }

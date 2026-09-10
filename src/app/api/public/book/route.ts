@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getSmartAvailability } from "@/features/availability/smart-availability";
+import type { AppointmentServiceInput } from "@/features/appointments/types";
 
 type Slot = {
   start_time: string;
@@ -136,6 +138,43 @@ export async function POST(request: Request) {
       );
     }
 
+    // Always recompute availability before accepting the public request. This
+    // prevents stale/tampered slots and respects current shifts, breaks, rooms
+    // and existing appointments even if the schedule changed after the client
+    // initially loaded the list of available times.
+    const availabilityItems: AppointmentServiceInput[] = [
+      {
+        service_id: service.id,
+        duration_minutes: service.duration_minutes,
+      },
+    ];
+
+    const freshAvailability = await getSmartAvailability({
+      date,
+      items: availabilityItems,
+      intervalMinutes: 30,
+      maxSuggestions: 999,
+      employeeId: slot.employee_id,
+    });
+
+    const freshSlot = freshAvailability.suggestions.find(
+      (candidate) =>
+        candidate.employee_id === slot.employee_id &&
+        candidate.start_time.slice(0, 5) === slot.start_time.slice(0, 5) &&
+        candidate.end_time.slice(0, 5) === slot.end_time.slice(0, 5) &&
+        candidate.room_id === slot.room_id,
+    );
+
+    if (!freshSlot) {
+      return NextResponse.json(
+        {
+          error:
+            "Odabrani termin više nije dostupan. Molimo osvježi dostupne termine i odaberi drugi sat.",
+        },
+        { status: 409 },
+      );
+    }
+
     const { data: recentDuplicateRequest, error: recentDuplicateError } =
       await supabase
         .from("online_booking_requests")
@@ -143,7 +182,7 @@ export async function POST(request: Request) {
         .eq("client_phone", phone)
         .eq("service_id", serviceId)
         .eq("requested_date", date)
-        .eq("start_time", slot.start_time)
+        .eq("start_time", freshSlot.start_time)
         .gte("created_at", new Date(Date.now() - 60 * 1000).toISOString())
         .limit(1);
 
@@ -166,8 +205,8 @@ export async function POST(request: Request) {
         .from("online_booking_requests")
         .select("id")
         .eq("requested_date", date)
-        .eq("start_time", slot.start_time)
-        .eq("suggested_employee_id", slot.employee_id)
+        .eq("start_time", freshSlot.start_time)
+        .eq("suggested_employee_id", freshSlot.employee_id)
         .eq("status", "pending")
         .maybeSingle();
 
@@ -193,8 +232,8 @@ export async function POST(request: Request) {
         .from("appointments")
         .select("id")
         .eq("appointment_date", date)
-        .eq("start_time", slot.start_time)
-        .eq("employee_id", slot.employee_id)
+        .eq("start_time", freshSlot.start_time)
+        .eq("employee_id", freshSlot.employee_id)
         .in("status", ["scheduled", "completed"])
         .maybeSingle();
 
@@ -220,13 +259,13 @@ export async function POST(request: Request) {
       .insert({
         service_id: serviceId,
         requested_date: date,
-        start_time: slot.start_time,
-        end_time: slot.end_time,
+        start_time: freshSlot.start_time,
+        end_time: freshSlot.end_time,
         duration_minutes: service.duration_minutes,
-        suggested_employee_id: slot.employee_id,
-        suggested_room_id: slot.room_id,
-        final_employee_id: slot.employee_id,
-        final_room_id: slot.room_id,
+        suggested_employee_id: freshSlot.employee_id,
+        suggested_room_id: freshSlot.room_id,
+        final_employee_id: freshSlot.employee_id,
+        final_room_id: freshSlot.room_id,
         final_duration_minutes: service.duration_minutes,
         client_full_name: fullName,
         client_phone: phone,
