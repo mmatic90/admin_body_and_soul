@@ -20,8 +20,8 @@ export default async function EmployeeSchedulePage({
   if (!data) notFound();
 
   return (
-    <main className="min-h-screen bg-app-bg p-6 md:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <main className="min-h-screen bg-app-bg p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-6">
         <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -80,39 +80,35 @@ export default async function EmployeeSchedulePage({
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-2">
-          <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-app-text">Default raspored po danima</h2>
-            <p className="mt-2 text-sm text-app-muted">Ovaj raspored vrijedi dok ne postoji override za određeni datum.</p>
-            <div className="mt-6">
-              <DefaultScheduleForm employeeId={data.employee.id} defaultSchedule={data.defaultSchedule} />
-            </div>
+        <section className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
+          <h2 className="text-2xl font-semibold text-app-text">Default raspored po danima</h2>
+          <p className="mt-2 text-sm text-app-muted">Ovaj raspored vrijedi dok ne postoji override za određeni datum.</p>
+          <div className="mt-6">
+            <DefaultScheduleForm employeeId={data.employee.id} defaultSchedule={data.defaultSchedule} />
           </div>
+        </section>
 
-          <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-app-text">Brza primjena na raspon dana</h2>
-            <p className="mt-2 text-sm text-app-muted">Primijeni isto radno vrijeme i opcionalnu pauzu na više dana odjednom.</p>
-            <div className="mt-6">
-              <DefaultScheduleRangeForm employeeId={data.employee.id} defaultSchedule={data.defaultSchedule} />
-            </div>
+        <section className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
+          <h2 className="text-2xl font-semibold text-app-text">Brza primjena na raspon dana</h2>
+          <p className="mt-2 text-sm text-app-muted">Primijeni isto radno vrijeme i opcionalnu pauzu na više dana odjednom.</p>
+          <div className="mt-6">
+            <DefaultScheduleRangeForm employeeId={data.employee.id} defaultSchedule={data.defaultSchedule} />
           </div>
-        </div>
+        </section>
 
-        <div className="grid gap-6 xl:grid-cols-2">
-          <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-app-text">Dodaj override</h2>
-            <p className="mt-2 text-sm text-app-muted">Koristi za promjenu smjene, pauze, slobodan dan, godišnji ili bolovanje.</p>
-            <div className="mt-6"><OverrideForm employeeId={data.employee.id} /></div>
-          </div>
+        <section className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
+          <h2 className="text-2xl font-semibold text-app-text">Dodaj override</h2>
+          <p className="mt-2 text-sm text-app-muted">Koristi za promjenu smjene, pauze, slobodan dan, godišnji ili bolovanje.</p>
+          <div className="mt-6"><OverrideForm employeeId={data.employee.id} /></div>
+        </section>
 
-          <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-            <h2 className="text-2xl font-semibold text-app-text">Postojeći overrideovi</h2>
-            <p className="mt-2 text-sm text-app-muted">Pregled i sigurno brisanje overrideova za ovog zaposlenika.</p>
-            <div className="mt-6">
-              <OverrideList employeeId={data.employee.id} overrides={data.overrides} />
-            </div>
+        <section className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
+          <h2 className="text-2xl font-semibold text-app-text">Postojeći overrideovi</h2>
+          <p className="mt-2 text-sm text-app-muted">Prikazuju se overrideovi od prije 3 dana nadalje. Starije možeš otvoriti po potrebi.</p>
+          <div className="mt-6">
+            <OverrideList employeeId={data.employee.id} overrides={data.overrides} />
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );
