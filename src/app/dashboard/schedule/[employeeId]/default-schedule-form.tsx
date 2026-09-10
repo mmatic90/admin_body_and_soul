@@ -36,60 +36,56 @@ export default function DefaultScheduleForm({ employeeId, defaultSchedule }: Pro
   }, [defaultSchedule]);
 
   const [workingMap, setWorkingMap] = useState<Record<number, boolean>>(initialWorkingMap);
+  const inputClass = "w-full min-w-[125px] rounded-xl border border-app-soft bg-white px-3 py-2.5 text-app-text outline-none transition focus:border-app-accent focus:ring-2 focus:ring-app-accent/10 disabled:cursor-not-allowed disabled:bg-app-card-alt disabled:text-app-muted";
 
   return (
-    <form action={formAction} className="space-y-4">
-      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-        Pauza je opcionalna. Ako je postaviš, termini se neće nuditi tijekom pauze. Primjer: rad 08:00–20:00, pauza 13:00–16:00 znači da je zaposlenica dostupna 08:00–13:00 i 16:00–20:00.
+    <form action={formAction} className="space-y-5">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-800">
+        Pauza je opcionalna. Ako je postaviš, termini se neće nuditi tijekom pauze. Primjer: rad 08:00–20:00, pauza 13:00–16:00 znači dostupnost 08:00–13:00 i 16:00–20:00.
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-app-soft">
-        <table className="min-w-full border-collapse">
-          <thead className="bg-app-table-head">
-            <tr className="text-left text-sm text-app-muted">
-              <th className="px-4 py-3 font-semibold">Dan</th>
-              <th className="px-4 py-3 font-semibold">Radi</th>
-              <th className="px-4 py-3 font-semibold">Početak</th>
-              <th className="px-4 py-3 font-semibold">Pauza od</th>
-              <th className="px-4 py-3 font-semibold">Pauza do</th>
-              <th className="px-4 py-3 font-semibold">Kraj</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dayRows.map(({ label, value }) => {
-              const item = defaultSchedule.find((row) => row.day_of_week === value);
-              const isWorking = workingMap[value] ?? false;
-              const commonClass = "rounded-xl border border-app-soft bg-white px-3 py-2 text-app-text outline-none disabled:cursor-not-allowed disabled:bg-app-card-alt disabled:text-app-muted";
+      <div className="space-y-3">
+        {dayRows.map(({ label, value }) => {
+          const item = defaultSchedule.find((row) => row.day_of_week === value);
+          const isWorking = workingMap[value] ?? false;
 
-              return (
-                <tr key={value} className="border-t border-app-soft text-sm transition hover:bg-app-card-alt">
-                  <td className="px-4 py-4 font-medium text-app-text">{label}</td>
-                  <td className="px-4 py-4">
-                    <input
-                      type="checkbox"
-                      name={`is_working_${value}`}
-                      checked={isWorking}
-                      onChange={(e) => setWorkingMap((prev) => ({ ...prev, [value]: e.target.checked }))}
-                      className="h-4 w-4 rounded border-app-soft accent-app-accent"
-                    />
-                  </td>
-                  <td className="px-4 py-4">
-                    <input type="time" name={`start_time_${value}`} defaultValue={item?.is_working ? item.start_time.slice(0, 5) : ""} disabled={!isWorking} className={commonClass} />
-                  </td>
-                  <td className="px-4 py-4">
-                    <input type="time" name={`break_start_time_${value}`} defaultValue={item?.is_working && item.break_start_time ? item.break_start_time.slice(0, 5) : ""} disabled={!isWorking} className={commonClass} />
-                  </td>
-                  <td className="px-4 py-4">
-                    <input type="time" name={`break_end_time_${value}`} defaultValue={item?.is_working && item.break_end_time ? item.break_end_time.slice(0, 5) : ""} disabled={!isWorking} className={commonClass} />
-                  </td>
-                  <td className="px-4 py-4">
-                    <input type="time" name={`end_time_${value}`} defaultValue={item?.is_working ? item.end_time.slice(0, 5) : ""} disabled={!isWorking} className={commonClass} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+          return (
+            <div key={value} className="rounded-2xl border border-app-soft bg-app-bg/40 p-4">
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <div className="font-semibold text-app-text">{label}</div>
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-app-text">
+                  <input
+                    type="checkbox"
+                    name={`is_working_${value}`}
+                    checked={isWorking}
+                    onChange={(e) => setWorkingMap((prev) => ({ ...prev, [value]: e.target.checked }))}
+                    className="h-4 w-4 rounded border-app-soft accent-app-accent"
+                  />
+                  Radi
+                </label>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-muted">Početak rada</label>
+                  <input type="time" name={`start_time_${value}`} defaultValue={item?.is_working ? item.start_time.slice(0, 5) : ""} disabled={!isWorking} className={inputClass} />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-muted">Kraj rada</label>
+                  <input type="time" name={`end_time_${value}`} defaultValue={item?.is_working ? item.end_time.slice(0, 5) : ""} disabled={!isWorking} className={inputClass} />
+                </div>
+                <div className="rounded-xl border border-dashed border-app-soft bg-white/70 p-3">
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-muted">Pauza od</label>
+                  <input type="time" name={`break_start_time_${value}`} defaultValue={item?.is_working && item.break_start_time ? item.break_start_time.slice(0, 5) : ""} disabled={!isWorking} className={inputClass} />
+                </div>
+                <div className="rounded-xl border border-dashed border-app-soft bg-white/70 p-3">
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-muted">Pauza do</label>
+                  <input type="time" name={`break_end_time_${value}`} defaultValue={item?.is_working && item.break_end_time ? item.break_end_time.slice(0, 5) : ""} disabled={!isWorking} className={inputClass} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {state.error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{state.error}</div> : null}
