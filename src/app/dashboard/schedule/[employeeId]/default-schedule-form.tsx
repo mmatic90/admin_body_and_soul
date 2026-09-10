@@ -22,36 +22,27 @@ const dayRows = [
   { value: 0, label: "Nedjelja" },
 ];
 
-export default function DefaultScheduleForm({
-  employeeId,
-  defaultSchedule,
-}: Props) {
-  const initialState: ScheduleActionState = {
-    error: "",
-    success: "",
-  };
-
+export default function DefaultScheduleForm({ employeeId, defaultSchedule }: Props) {
+  const initialState: ScheduleActionState = { error: "", success: "" };
   const boundAction = updateDefaultScheduleAction.bind(null, employeeId);
-  const [state, formAction, pending] = useActionState(
-    boundAction,
-    initialState,
-  );
+  const [state, formAction, pending] = useActionState(boundAction, initialState);
 
   const initialWorkingMap = useMemo(() => {
     return dayRows.reduce<Record<number, boolean>>((acc, row) => {
-      const item = defaultSchedule.find(
-        (schedule) => schedule.day_of_week === row.value,
-      );
+      const item = defaultSchedule.find((schedule) => schedule.day_of_week === row.value);
       acc[row.value] = item?.is_working ?? false;
       return acc;
     }, {});
   }, [defaultSchedule]);
 
-  const [workingMap, setWorkingMap] =
-    useState<Record<number, boolean>>(initialWorkingMap);
+  const [workingMap, setWorkingMap] = useState<Record<number, boolean>>(initialWorkingMap);
 
   return (
     <form action={formAction} className="space-y-4">
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        Pauza je opcionalna. Ako je postaviš, termini se neće nuditi tijekom pauze. Primjer: rad 08:00–20:00, pauza 13:00–16:00 znači da je zaposlenica dostupna 08:00–13:00 i 16:00–20:00.
+      </div>
+
       <div className="overflow-x-auto rounded-2xl border border-app-soft">
         <table className="min-w-full border-collapse">
           <thead className="bg-app-table-head">
@@ -59,63 +50,40 @@ export default function DefaultScheduleForm({
               <th className="px-4 py-3 font-semibold">Dan</th>
               <th className="px-4 py-3 font-semibold">Radi</th>
               <th className="px-4 py-3 font-semibold">Početak</th>
+              <th className="px-4 py-3 font-semibold">Pauza od</th>
+              <th className="px-4 py-3 font-semibold">Pauza do</th>
               <th className="px-4 py-3 font-semibold">Kraj</th>
             </tr>
           </thead>
-
           <tbody>
             {dayRows.map(({ label, value }) => {
-              const item = defaultSchedule.find(
-                (row) => row.day_of_week === value,
-              );
+              const item = defaultSchedule.find((row) => row.day_of_week === value);
               const isWorking = workingMap[value] ?? false;
+              const commonClass = "rounded-xl border border-app-soft bg-white px-3 py-2 text-app-text outline-none disabled:cursor-not-allowed disabled:bg-app-card-alt disabled:text-app-muted";
 
               return (
-                <tr
-                  key={value}
-                  className="border-t border-app-soft text-sm transition hover:bg-app-card-alt"
-                >
-                  <td className="px-4 py-4 font-medium text-app-text">
-                    {label}
-                  </td>
-
+                <tr key={value} className="border-t border-app-soft text-sm transition hover:bg-app-card-alt">
+                  <td className="px-4 py-4 font-medium text-app-text">{label}</td>
                   <td className="px-4 py-4">
                     <input
                       type="checkbox"
                       name={`is_working_${value}`}
                       checked={isWorking}
-                      onChange={(e) =>
-                        setWorkingMap((prev) => ({
-                          ...prev,
-                          [value]: e.target.checked,
-                        }))
-                      }
+                      onChange={(e) => setWorkingMap((prev) => ({ ...prev, [value]: e.target.checked }))}
                       className="h-4 w-4 rounded border-app-soft accent-app-accent"
                     />
                   </td>
-
                   <td className="px-4 py-4">
-                    <input
-                      type="time"
-                      name={`start_time_${value}`}
-                      defaultValue={
-                        item?.is_working ? item.start_time.slice(0, 5) : ""
-                      }
-                      disabled={!isWorking}
-                      className="rounded-xl border border-app-soft bg-white px-3 py-2 text-app-text outline-none disabled:cursor-not-allowed disabled:bg-app-card-alt disabled:text-app-muted"
-                    />
+                    <input type="time" name={`start_time_${value}`} defaultValue={item?.is_working ? item.start_time.slice(0, 5) : ""} disabled={!isWorking} className={commonClass} />
                   </td>
-
                   <td className="px-4 py-4">
-                    <input
-                      type="time"
-                      name={`end_time_${value}`}
-                      defaultValue={
-                        item?.is_working ? item.end_time.slice(0, 5) : ""
-                      }
-                      disabled={!isWorking}
-                      className="rounded-xl border border-app-soft bg-white px-3 py-2 text-app-text outline-none disabled:cursor-not-allowed disabled:bg-app-card-alt disabled:text-app-muted"
-                    />
+                    <input type="time" name={`break_start_time_${value}`} defaultValue={item?.is_working && item.break_start_time ? item.break_start_time.slice(0, 5) : ""} disabled={!isWorking} className={commonClass} />
+                  </td>
+                  <td className="px-4 py-4">
+                    <input type="time" name={`break_end_time_${value}`} defaultValue={item?.is_working && item.break_end_time ? item.break_end_time.slice(0, 5) : ""} disabled={!isWorking} className={commonClass} />
+                  </td>
+                  <td className="px-4 py-4">
+                    <input type="time" name={`end_time_${value}`} defaultValue={item?.is_working ? item.end_time.slice(0, 5) : ""} disabled={!isWorking} className={commonClass} />
                   </td>
                 </tr>
               );
@@ -124,24 +92,11 @@ export default function DefaultScheduleForm({
         </table>
       </div>
 
-      {state.error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {state.error}
-        </div>
-      ) : null}
-
-      {state.success ? (
-        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-          {state.success}
-        </div>
-      ) : null}
+      {state.error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{state.error}</div> : null}
+      {state.success ? <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{state.success}</div> : null}
 
       <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-xl bg-app-accent px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-50"
-        >
+        <button type="submit" disabled={pending} className="rounded-xl bg-app-accent px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-50">
           {pending ? "Spremanje..." : "Spremi default raspored"}
         </button>
       </div>
