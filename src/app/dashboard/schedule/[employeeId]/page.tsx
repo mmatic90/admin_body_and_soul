@@ -38,6 +38,11 @@ export default async function EmployeeSchedulePage({
           </div>
         </div>
 
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
+          <span className="font-semibold">Važno kod unosa vremena:</span>{" "}
+          sva vremena upisuju se u <strong>24-satnom formatu</strong>. Na primjer, 3 popodne je <strong>15:00</strong>, a ne 03:00. Provjeri posebno početak i kraj radnog vremena te pauze prije spremanja.
+        </div>
+
         <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
           <h2 className="text-2xl font-semibold text-app-text">Radno vrijeme za sljedećih 5 dana</h2>
           <p className="mt-2 text-sm text-app-muted">Prikaz uključuje default raspored, pauze i sve overrideove.</p>
