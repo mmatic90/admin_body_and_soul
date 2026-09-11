@@ -86,20 +86,12 @@ export default async function OnlineBookingsPage({
       <AutoRefresh />
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-          <p className="text-sm font-medium text-app-muted">
-            Zahtjevi s javne web stranice
-          </p>
-
-          <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-app-text">
                 Online rezervacije
               </h1>
 
-              <p className="mt-2 text-app-muted">
-                Pregledaj nove, prihvaćene i odbijene zahtjeve za online
-                rezervaciju.
-              </p>
             </div>
 
             <div className="flex flex-wrap gap-3">
