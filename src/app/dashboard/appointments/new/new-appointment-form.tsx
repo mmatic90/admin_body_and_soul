@@ -20,6 +20,26 @@ import { calculateTotalDuration } from "@/features/appointments/calculate-total-
 import type { AppointmentServiceInput } from "@/features/appointments/types";
 import { addMinutesToTimeString } from "@/features/appointments/time-helpers";
 
+type ClientPrefill = {
+  clientId: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+};
+
+type RepeatPrefill = {
+  sourceAppointmentId: string;
+  clientId: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+  clientNote: string;
+  internalNote: string;
+  employeeId: string;
+  roomId: string;
+  services: AppointmentServiceInput[];
+};
+
 type Props = {
   services: AppointmentFormService[];
   employees: AppointmentFormEmployee[];
@@ -28,6 +48,8 @@ type Props = {
   employeeServices: AppointmentFormEmployeeService[];
   clients: ClientComboboxItem[];
   defaultDate: string;
+  repeatPrefill?: RepeatPrefill;
+  clientPrefill?: ClientPrefill;
 };
 
 function parseServicesJson(raw: string): AppointmentServiceInput[] {
@@ -69,24 +91,30 @@ export default function NewAppointmentForm({
   employeeServices,
   clients,
   defaultDate,
+  repeatPrefill,
+  clientPrefill,
 }: Props) {
   const initialState: ActionState = {
     error: "",
     values: {
       appointment_date: defaultDate || getTodayLocalDate(),
       start_time: "",
-      client_id: "",
-      client_name: "",
-      client_phone: "",
-      client_email: "",
-      service_id: "",
-      employee_id: "",
-      room_id: "",
-      duration_minutes: "",
+      client_id: repeatPrefill?.clientId ?? clientPrefill?.clientId ?? "",
+      client_name: repeatPrefill?.clientName ?? clientPrefill?.clientName ?? "",
+      client_phone: repeatPrefill?.clientPhone ?? clientPrefill?.clientPhone ?? "",
+      client_email: repeatPrefill?.clientEmail ?? clientPrefill?.clientEmail ?? "",
+      service_id: repeatPrefill?.services[0]?.service_id ?? "",
+      employee_id: repeatPrefill?.employeeId ?? "",
+      room_id: repeatPrefill?.roomId ?? "",
+      duration_minutes: repeatPrefill?.services[0]?.duration_minutes
+        ? String(repeatPrefill.services[0].duration_minutes)
+        : "",
       status: "scheduled",
       client_note: "",
       internal_note: "",
-      services_json: "[]",
+      services_json: repeatPrefill?.services.length
+        ? JSON.stringify(repeatPrefill.services)
+        : "[]",
     },
   };
 
@@ -121,6 +149,9 @@ export default function NewAppointmentForm({
   ]);
 
   const [workingEmployeeIds, setWorkingEmployeeIds] = useState<string[]>([]);
+  const [employeeAvailability, setEmployeeAvailability] = useState<
+    { id: string; display_name: string; is_working: boolean; reason: string }[]
+  >([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
   const [serviceChangeNotice, setServiceChangeNotice] = useState("");
@@ -158,6 +189,7 @@ export default function NewAppointmentForm({
     async function loadAvailability() {
       if (!selectedDate) {
         setWorkingEmployeeIds([]);
+        setEmployeeAvailability([]);
         return;
       }
 
@@ -181,10 +213,12 @@ export default function NewAppointmentForm({
 
         if (!cancelled) {
           setWorkingEmployeeIds(result.workingEmployeeIds ?? []);
+          setEmployeeAvailability(result.employeeAvailability ?? []);
         }
       } catch (error) {
         if (!cancelled) {
           setWorkingEmployeeIds([]);
+          setEmployeeAvailability([]);
           setAvailabilityError(
             error instanceof Error
               ? error.message
@@ -221,6 +255,36 @@ export default function NewAppointmentForm({
     if (!startTime || totalDuration <= 0) return "";
     return addMinutesToTimeString(startTime, totalDuration);
   }, [startTime, totalDuration]);
+
+  const selectedClient = useMemo(
+    () => clients.find((client) => client.id === selectedClientId) ?? null,
+    [clients, selectedClientId],
+  );
+
+  const clientRiskWarnings = useMemo(() => {
+    if (!selectedClient) return [] as string[];
+    const warnings: string[] = [];
+
+    if (
+      (selectedClient.no_show_count ?? 0) >= 2 ||
+      (selectedClient.no_show_rate ?? 0) >= 25
+    ) {
+      warnings.push(
+        `No-show: ${selectedClient.no_show_count ?? 0} puta (${selectedClient.no_show_rate ?? 0}%).`,
+      );
+    }
+
+    if (
+      (selectedClient.cancelled_count ?? 0) >= 2 ||
+      (selectedClient.cancellation_rate ?? 0) >= 25
+    ) {
+      warnings.push(
+        `Otkazivanja: ${selectedClient.cancelled_count ?? 0} puta (${selectedClient.cancellation_rate ?? 0}%).`,
+      );
+    }
+
+    return warnings;
+  }, [selectedClient]);
 
   const selectedPrimaryService = useMemo(
     () => services.find((service) => service.id === primaryServiceId) ?? null,
@@ -298,6 +362,42 @@ export default function NewAppointmentForm({
     if (allSelectedServiceIds.length === 0) return rooms;
     return rooms.filter((room) => allowedRoomIds.has(room.id));
   }, [allSelectedServiceIds, rooms, allowedRoomIds]);
+
+  const unavailableEmployeeReasons = useMemo(() => {
+    if (allSelectedServiceIds.length === 0) return [];
+
+    return employees
+      .filter((employee) => allowedEmployeeIds.has(employee.id))
+      .filter((employee) => !workingEmployeeIdSet.has(employee.id))
+      .map((employee) => {
+        const availability = employeeAvailability.find(
+          (item) => item.id === employee.id,
+        );
+        return {
+          id: employee.id,
+          name: employee.display_name,
+          reason: availability?.reason ?? "Nije dostupan na odabrani datum.",
+        };
+      });
+  }, [
+    allSelectedServiceIds,
+    employees,
+    allowedEmployeeIds,
+    workingEmployeeIdSet,
+    employeeAvailability,
+  ]);
+
+  const serviceCapabilityIssue = useMemo(() => {
+    if (allSelectedServiceIds.length === 0 || allowedEmployeeIds.size > 0) {
+      return "";
+    }
+
+    if (allSelectedServiceIds.length === 1) {
+      return "Nijedan aktivni zaposlenik nije povezan s odabranom uslugom.";
+    }
+
+    return "Nijedan zaposlenik nije postavljen da može odraditi sve odabrane usluge u istom terminu.";
+  }, [allSelectedServiceIds, allowedEmployeeIds]);
 
   const filteredEmployees = useMemo(() => {
     if (allSelectedServiceIds.length === 0) return [];
@@ -414,6 +514,12 @@ export default function NewAppointmentForm({
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="client_id" value={selectedClientId} />
 
+      {repeatPrefill ? (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          Podaci o klijentu i uslugama preuzeti su iz prethodnog termina. Odaberi novi datum i vrijeme te provjeri zaposlenika i sobu prije spremanja.
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1">
           <label
@@ -465,8 +571,8 @@ export default function NewAppointmentForm({
             setClientName(client.full_name);
             setClientPhone(client.phone ?? "");
             setClientEmail(client.email ?? "");
-            setClientNote(client.note ?? "");
-            setInternalNote(client.internal_note ?? "");
+            setClientNote("");
+            setInternalNote("");
           }}
           onUseTypedAsNew={(typedValue) => {
             setSelectedClientId("");
@@ -477,6 +583,15 @@ export default function NewAppointmentForm({
           }}
         />
       </div>
+
+      {clientRiskWarnings.length > 0 ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="font-semibold">Napomena za ovog klijenta</div>
+          <div className="mt-1">
+            {clientRiskWarnings.join(" ")} Provjeri termin s klijentom prije spremanja ako je potrebno.
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1">
@@ -635,8 +750,27 @@ export default function NewAppointmentForm({
       !availabilityLoading &&
       filteredEmployees.length === 0 ? (
         <div className={messageWarnClass}>
-          Nema zaposlenika koji mogu raditi sve odabrane usluge na odabrani
-          datum.
+          <div className="font-semibold">Nema dostupnog zaposlenika</div>
+          <div className="mt-1">
+            {serviceCapabilityIssue ||
+              "Zaposlenici koji mogu raditi odabrane usluge ne rade na odabrani datum."}
+          </div>
+
+          {unavailableEmployeeReasons.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {unavailableEmployeeReasons.map((employee) => (
+                <li key={employee.id}>
+                  <span className="font-medium">{employee.name}:</span>{" "}
+                  {employee.reason}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <div className="mt-2 text-xs">
+            Pokušaj odabrati drugi datum ili provjeri raspored i povezivanje
+            zaposlenika s uslugama.
+          </div>
         </div>
       ) : null}
 

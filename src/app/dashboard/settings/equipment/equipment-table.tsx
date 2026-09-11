@@ -65,10 +65,17 @@ export default function EquipmentTable({ equipment }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-app-muted">
-          Uredi opremu pa klikni{" "}
-          <span className="font-medium text-app-text">Spremi izmjene</span>.
+      <div className="sticky top-2 z-40 flex flex-col gap-3 rounded-2xl border border-app-soft bg-white/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-sm text-app-muted">
+            Uredi opremu pa klikni{" "}
+            <span className="font-medium text-app-text">Spremi izmjene</span>.
+          </div>
+          {hasChanges ? (
+            <div className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+              Imaš nespremljene promjene
+            </div>
+          ) : null}
         </div>
 
         <div className="flex gap-2">
@@ -93,9 +100,9 @@ export default function EquipmentTable({ equipment }: Props) {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-app-soft">
+      <div className="max-h-[72vh] overflow-auto rounded-2xl border border-app-soft">
         <table className="min-w-full border-collapse">
-          <thead className="bg-app-table-head">
+          <thead className="sticky top-0 z-30 bg-app-table-head shadow-sm">
             <tr className="text-left text-sm text-app-muted">
               <th className="px-4 py-3 font-semibold">Naziv</th>
               <th className="px-4 py-3 font-semibold">Količina</th>
@@ -123,13 +130,18 @@ export default function EquipmentTable({ equipment }: Props) {
                 <td className="px-4 py-4">
                   <input
                     type="number"
-                    min={1}
+                    min={0}
                     value={item.quantity}
                     onChange={(e) =>
                       updateItem(item.id, "quantity", Number(e.target.value))
                     }
                     className="w-28 rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none transition focus:border-app-accent"
                   />
+                  {item.quantity === 0 ? (
+                    <div className="mt-2 w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                      Nema dostupnih komada
+                    </div>
+                  ) : null}
                 </td>
 
                 <td className="px-4 py-4">

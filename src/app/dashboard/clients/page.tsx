@@ -49,7 +49,6 @@ export default async function ClientsPage({
     <PageShell maxWidth="max-w-7xl">
       <PageHeader
         title="Klijenti"
-        description="Pregled klijenata i njihove povijesti termina."
         actions={
           <Link
             href="/dashboard/clients/new"

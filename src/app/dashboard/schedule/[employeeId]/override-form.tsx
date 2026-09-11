@@ -29,7 +29,7 @@ export default function OverrideForm({ employeeId }: Props) {
   return (
     <form action={formAction} className="space-y-5">
       <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-800">
-        Override zamjenjuje uobičajeni raspored samo za odabrani datum ili raspon. Kod posebnog radnog vremena možeš postaviti i pauzu.
+        Posebna izmjena zamjenjuje redovni raspored samo za odabrani datum ili raspon. Kod posebnog radnog vremena možeš postaviti i pauzu.
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -42,7 +42,7 @@ export default function OverrideForm({ employeeId }: Props) {
           <input id="date_to" name="date_to" type="date" value={dateTo} min={dateFrom} onChange={(e) => setDateTo(e.target.value)} className={inputClass} required />
         </div>
         <div>
-          <label htmlFor="override_type" className="mb-1.5 block text-sm font-semibold text-app-text">Tip overridea</label>
+          <label htmlFor="override_type" className="mb-1.5 block text-sm font-semibold text-app-text">Vrsta izmjene</label>
           <select id="override_type" name="override_type" value={overrideType} onChange={(e) => setOverrideType(e.target.value)} className={inputClass} required>
             <option value="custom_hours">Posebno radno vrijeme</option>
             <option value="day_off">Slobodan dan</option>
@@ -98,7 +98,7 @@ export default function OverrideForm({ employeeId }: Props) {
 
       <div className="flex justify-end">
         <button type="submit" disabled={pending} className="rounded-xl bg-app-accent px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-50">
-          {pending ? "Spremanje..." : "Dodaj override raspon"}
+          {pending ? "Spremanje..." : "Dodaj posebnu izmjenu"}
         </button>
       </div>
     </form>

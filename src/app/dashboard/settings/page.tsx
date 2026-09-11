@@ -29,72 +29,30 @@ export default async function SettingsPage() {
 
   return (
     <PageShell maxWidth="max-w-7xl">
-      <PageHeader
-        title="Postavke"
-        description="Upravljanje osnovnim podacima salona."
-      />
+      <PageHeader title="Postavke" />
 
-      <PageSection title="Moduli postavki">
+      <PageSection title="Osnovno">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <SettingsCard href="/dashboard/settings/services" title="Usluge" description="Nazivi, opisi, trajanje, cijene i dostupnost usluga." />
+          <SettingsCard href="/dashboard/settings/employees" title="Djelatnici" description="Dodavanje, uređivanje, deaktivacija i pristup djelatnika." />
+          <SettingsCard href="/dashboard/settings/rooms" title="Sobe" description="Upravljanje aktivnim sobama u salonu." />
+          <SettingsCard href="/dashboard/settings/equipment" title="Oprema" description="Upravljanje opremom i raspoloživim količinama." />
+        </div>
+      </PageSection>
+
+      <PageSection title="Povezivanja i pravila">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <SettingsCard
-            href="/dashboard/settings/services"
-            title="Usluge"
-            description="Dodavanje i aktivacija/deaktivacija usluga."
-          />
+          <SettingsCard href="/dashboard/settings/employee-services" title="Djelatnici i usluge" description="Odredi koje usluge pojedini djelatnik može raditi." />
+          <SettingsCard href="/dashboard/settings/service-rooms" title="Usluge i sobe" description="Odredi u kojim sobama se pojedina usluga može izvoditi." />
+          <SettingsCard href="/dashboard/settings/service-equipment" title="Usluge i oprema" description="Odredi koja je oprema potrebna za pojedinu uslugu." />
+          <SettingsCard href="/dashboard/settings/group-limits" title="Paralelni termini po grupama" description="Odredi koliko termina iste grupe usluga može ići paralelno." />
+        </div>
+      </PageSection>
 
-          <SettingsCard
-            href="/dashboard/settings/rooms"
-            title="Sobe"
-            description="Upravljanje sobama u salonu."
-          />
-
-          <SettingsCard
-            href="/dashboard/settings/equipment"
-            title="Oprema"
-            description="Upravljanje opremom i količinama."
-          />
-
-          <SettingsCard
-            href="/dashboard/settings/service-rooms"
-            title="Usluge i sobe"
-            description="Odredi u kojim sobama se pojedina usluga može izvoditi."
-          />
-
-          <SettingsCard
-            href="/dashboard/settings/employee-services"
-            title="Zaposlenici i usluge"
-            description="Odredi koje usluge pojedini zaposlenik može raditi."
-          />
-
-          <SettingsCard
-            href="/dashboard/settings/service-equipment"
-            title="Usluge i oprema"
-            description="Odredi koja je oprema potrebna za pojedinu uslugu."
-          />
-
-          <SettingsCard
-            href="/dashboard/settings/salon-hours"
-            title="Radno vrijeme salona"
-            description="Uredi radno vrijeme salona po danima u tjednu."
-          />
-
-          <SettingsCard
-            href="/dashboard/settings/group-limits"
-            title="Group limits"
-            description="Odredi koliko termina iz iste grupe može ići paralelno."
-          />
-
-          <SettingsCard
-            href="/dashboard/settings/employees"
-            title="Djelatnici"
-            description="Dodavanje, uređivanje, deaktivacija i reset lozinke djelatnika."
-          />
-
-          <SettingsCard
-            href="/dashboard/settings/audit-log"
-            title="Audit log"
-            description="Pregled svih akcija i promjena u sustavu."
-          />
+      <PageSection title="Salon i administracija">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <SettingsCard href="/dashboard/settings/salon-hours" title="Radno vrijeme salona" description="Uredi radno vrijeme salona po danima u tjednu." />
+          <SettingsCard href="/dashboard/settings/audit-log" title="Dnevnik aktivnosti" description="Pregled važnih akcija i promjena u sustavu." />
         </div>
       </PageSection>
     </PageShell>

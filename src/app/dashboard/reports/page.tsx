@@ -1,10 +1,33 @@
-import { getReportsDashboardData } from "@/features/reports/queries";
+import Link from "next/link";
+import { getReportsDashboardData, type ReportPeriod } from "@/features/reports/queries";
 import { requireAdminForReports } from "@/lib/page-guards";
 import { formatDateHR } from "@/lib/datetime";
 import EmptyStateCard from "@/components/empty-state-card";
 import PageShell from "@/components/page-shell";
 import PageHeader from "@/components/page-header";
 import PageSection from "@/components/page-section";
+
+type SearchParams = Promise<{
+  period?: string;
+}>;
+
+const periodOptions: { value: ReportPeriod; label: string }[] = [
+  { value: "current_month", label: "Ovaj mjesec" },
+  { value: "previous_month", label: "Prošli mjesec" },
+  { value: "last_30_days", label: "Zadnjih 30 dana" },
+];
+
+function resolvePeriod(value?: string): ReportPeriod {
+  if (
+    value === "previous_month" ||
+    value === "last_30_days" ||
+    value === "current_month"
+  ) {
+    return value;
+  }
+
+  return "current_month";
+}
 
 function StatCard({
   label,
@@ -19,9 +42,7 @@ function StatCard({
     <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
       <div className="text-sm text-app-muted">{label}</div>
       <div className="mt-2 text-3xl font-bold text-app-text">{value}</div>
-      {helper ? (
-        <div className="mt-2 text-xs text-app-muted">{helper}</div>
-      ) : null}
+      {helper ? <div className="mt-2 text-xs text-app-muted">{helper}</div> : null}
     </div>
   );
 }
@@ -86,14 +107,9 @@ function RankingList({
                 <div className="text-sm font-semibold text-app-text">
                   {index + 1}. {item.name}
                 </div>
-                <div className="mt-1 text-xs text-app-muted">
-                  {item.count} termina
-                </div>
+                <div className="mt-1 text-xs text-app-muted">{item.count} termina</div>
               </div>
-
-              <div className="text-lg font-bold text-app-text">
-                {item.count}
-              </div>
+              <div className="text-lg font-bold text-app-text">{item.count}</div>
             </div>
 
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-app-card-alt">
@@ -109,107 +125,167 @@ function RankingList({
   );
 }
 
-export default async function ReportsPage() {
+function TrendBars({
+  items,
+}: {
+  items: {
+    date: string;
+    count: number;
+    completed: number;
+    no_show: number;
+  }[];
+}) {
+  if (items.length === 0) {
+    return (
+      <EmptyStateCard
+        title="Nema podataka za trend"
+        description="U odabranom razdoblju nema termina."
+      />
+    );
+  }
+
+  const max = Math.max(...items.map((item) => item.count), 1);
+
+  return (
+    <div className="mt-4 overflow-x-auto pb-2">
+      <div
+        className="grid min-w-max items-end gap-2 rounded-2xl border border-app-soft bg-white px-4 pb-3 pt-5"
+        style={{
+          gridTemplateColumns: `repeat(${items.length}, minmax(34px, 1fr))`,
+          minWidth: `${Math.max(items.length * 42, 720)}px`,
+        }}
+      >
+        {items.map((item) => {
+          const heightPercent = item.count > 0 ? Math.max((item.count / max) * 100, 8) : 0;
+          const [, month, day] = item.date.split("-");
+
+          return (
+            <div key={item.date} className="flex min-w-0 flex-col items-center">
+              <div className="mb-2 text-xs font-semibold text-app-text">
+                {item.count}
+              </div>
+
+              <div className="flex h-44 w-full items-end justify-center border-b border-app-soft">
+                <div
+                  className="w-5 rounded-t-md bg-app-accent transition-all"
+                  style={{ height: `${heightPercent}%` }}
+                  title={`${formatDateHR(item.date)}: ${item.count} termina · Odrađeno ${item.completed} · No-show ${item.no_show}`}
+                />
+              </div>
+
+              <div className="mt-2 whitespace-nowrap text-[10px] text-app-muted">
+                {day}.{month}.
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   await requireAdminForReports();
 
-  const data = await getReportsDashboardData();
+  const resolvedSearchParams = await searchParams;
+  const period = resolvePeriod(resolvedSearchParams.period);
+  const data = await getReportsDashboardData(period);
 
   const hasAnyReportData =
-    data.summary.today > 0 || data.summary.week > 0 || data.summary.month > 0;
+    data.summary.totalAppointments > 0 || data.onlineCounts.total > 0;
 
   return (
     <PageShell maxWidth="max-w-7xl">
-      <PageHeader
-        title="Reports"
-        description="Mjesečni pregled poslovanja, statusa termina, online rezervacija, usluga i zaposlenika."
-      />
+      <PageHeader title="Izvještaji" />
+
+      <div className="rounded-2xl border border-app-soft bg-app-card p-4 shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          {periodOptions.map((option) => {
+            const active = option.value === period;
+
+            return (
+              <Link
+                key={option.value}
+                href={`/dashboard/reports?period=${option.value}`}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  active
+                    ? "bg-app-accent text-white shadow-sm"
+                    : "bg-app-card-alt text-app-text hover:bg-app-bg"
+                }`}
+              >
+                {option.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="mt-3 text-sm text-app-muted">
+          Razdoblje: {formatDateHR(data.period.start)} – {formatDateHR(data.period.end)}
+        </div>
+      </div>
 
       {!hasAnyReportData ? (
         <EmptyStateCard
           title="Još nema podataka za izvještaje"
-          description="Kad počneš unositi i obrađivati termine, ovdje će se prikazivati statistika poslovanja."
+          description="Za odabrano razdoblje nema termina ni online zahtjeva."
         />
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Termini danas" value={data.summary.today} />
-        <StatCard label="Termini ovaj tjedan" value={data.summary.week} />
-        <StatCard label="Termini ovaj mjesec" value={data.summary.month} />
         <StatCard
-          label="Online conversion"
-          value={`${data.summary.onlineConversionRate}%`}
-          helper="Prihvaćeni online zahtjevi / svi online zahtjevi ovaj mjesec"
+          label="Termini"
+          value={data.summary.totalAppointments}
+          helper={data.period.label}
         />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Odrađeni"
-          value={data.summary.completedMonth}
-          helper="Ovaj mjesec"
-        />
-        <StatCard
-          label="Zakazani"
-          value={data.summary.scheduledMonth}
-          helper="Ovaj mjesec"
-        />
-        <StatCard
-          label="Otkazani"
-          value={data.summary.cancelledMonth}
-          helper="Ovaj mjesec"
+          value={data.summary.completedAppointments}
+          helper={`${data.summary.completionRate}% svih termina`}
         />
         <StatCard
           label="No-show"
-          value={data.summary.noShowMonth}
-          helper={`${data.summary.noShowRate}% svih termina ovaj mjesec`}
+          value={`${data.summary.noShowRate}%`}
+          helper={`${data.summary.noShowAppointments} termina`}
+        />
+        <StatCard
+          label="Online rezervacije"
+          value={`${data.summary.onlineConversionRate}%`}
+          helper={`${data.onlineCounts.accepted} od ${data.onlineCounts.total} zahtjeva prihvaćeno`}
         />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <PageSection title="Statusi termina ovaj mjesec">
+        <PageSection title="Statusi termina">
           <div className="mt-4 space-y-5">
             <ProgressRow
-              label="Odrađeni"
+              label="Odrađeno"
               value={data.statusCounts.completed}
-              total={data.summary.month}
+              total={data.summary.totalAppointments}
             />
             <ProgressRow
-              label="Zakazani"
+              label="Zakazano"
               value={data.statusCounts.scheduled}
-              total={data.summary.month}
+              total={data.summary.totalAppointments}
             />
             <ProgressRow
-              label="Otkazani"
+              label="Otkazano"
               value={data.statusCounts.cancelled}
-              total={data.summary.month}
+              total={data.summary.totalAppointments}
             />
             <ProgressRow
               label="No-show"
               value={data.statusCounts.no_show}
-              total={data.summary.month}
+              total={data.summary.totalAppointments}
             />
-          </div>
-
-          <div className="mt-6 rounded-2xl bg-app-card-alt p-4">
-            <div className="text-sm text-app-muted">Completion rate</div>
-            <div className="mt-1 text-3xl font-bold text-app-text">
-              {data.summary.completionRate}%
-            </div>
           </div>
         </PageSection>
 
-        <PageSection title="Online booking funnel ovaj mjesec">
+        <PageSection title="Online rezervacije">
           <div className="mt-4 space-y-5">
-            <ProgressRow
-              label="Ukupno online zahtjeva"
-              value={data.onlineCounts.total}
-              total={data.onlineCounts.total}
-            />
-            <ProgressRow
-              label="Na čekanju"
-              value={data.onlineCounts.pending}
-              total={data.onlineCounts.total}
-            />
             <ProgressRow
               label="Prihvaćeno"
               value={data.onlineCounts.accepted}
@@ -220,84 +296,73 @@ export default async function ReportsPage() {
               value={data.onlineCounts.rejected}
               total={data.onlineCounts.total}
             />
+            <ProgressRow
+              label="Na čekanju"
+              value={data.onlineCounts.pending}
+              total={data.onlineCounts.total}
+            />
           </div>
 
-          <div className="mt-6 rounded-2xl bg-app-card-alt p-4">
-            <div className="text-sm text-app-muted">Online conversion rate</div>
-            <div className="mt-1 text-3xl font-bold text-app-text">
+          <div className="mt-5 rounded-2xl bg-app-card-alt p-4 text-sm text-app-muted">
+            <span className="font-semibold text-app-text">{data.onlineCounts.accepted}</span>{" "}
+            od {data.onlineCounts.total} zahtjeva prihvaćeno —{" "}
+            <span className="font-semibold text-app-text">
               {data.summary.onlineConversionRate}%
-            </div>
+            </span>
           </div>
         </PageSection>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <PageSection title="Top zaposlenici ovaj mjesec">
+        <PageSection title="Termini po djelatniku">
           <RankingList
             items={data.topEmployees}
-            emptyTitle="Nema podataka o zaposlenicima"
-            emptyDescription="Još nema dovoljno termina u odabranom rasponu."
+            emptyTitle="Nema podataka o djelatnicima"
+            emptyDescription="U odabranom razdoblju nema termina."
           />
         </PageSection>
 
-        <PageSection title="Top usluge ovaj mjesec">
+        <PageSection title="Najtraženije usluge">
           <RankingList
             items={data.topServices}
             emptyTitle="Nema podataka o uslugama"
-            emptyDescription="Još nema dovoljno termina u odabranom rasponu."
+            emptyDescription="U odabranom razdoblju nema termina."
           />
         </PageSection>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <PageSection title="Termini zadnjih 14 dana">
-          <div className="mt-4 space-y-3">
-            {data.last14Days.map((day) => (
+      <PageSection title="Trend termina">
+        <TrendBars items={data.trend} />
+      </PageSection>
+
+      <PageSection title="Najaktivniji dani">
+        {data.busiestDays.length === 0 ? (
+          <EmptyStateCard
+            title="Nema aktivnih dana"
+            description="U odabranom razdoblju nema termina."
+          />
+        ) : (
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {data.busiestDays.map((day, index) => (
               <div
                 key={day.date}
                 className="rounded-xl border border-app-soft bg-white px-4 py-3"
               >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="text-sm text-app-muted">
-                    {formatDateHR(day.date)}
-                  </div>
-                  <div className="text-lg font-semibold text-app-text">
-                    {day.count}
-                  </div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                  #{index + 1}
                 </div>
-
-                <div className="mt-2 text-xs text-app-muted">
-                  Odrađeni: {day.completed} · No-show: {day.no_show}
+                <div className="mt-1 text-sm font-semibold text-app-text">
+                  {formatDateHR(day.date)}
+                </div>
+                <div className="mt-2 text-2xl font-bold text-app-text">{day.count}</div>
+                <div className="mt-1 text-xs text-app-muted">
+                  Odrađeno {day.completed} · No-show {day.no_show}
                 </div>
               </div>
             ))}
           </div>
-        </PageSection>
-
-        <PageSection title="Najaktivniji dani">
-          <div className="mt-4 space-y-3">
-            {data.busiestDays.map((day, index) => (
-              <div
-                key={`${day.date}-${index}`}
-                className="flex items-center justify-between rounded-xl border border-app-soft bg-white px-4 py-3"
-              >
-                <div>
-                  <div className="text-sm font-medium text-app-text">
-                    {index + 1}. {formatDateHR(day.date)}
-                  </div>
-                  <div className="mt-1 text-xs text-app-muted">
-                    Odrađeni: {day.completed} · No-show: {day.no_show}
-                  </div>
-                </div>
-
-                <div className="text-lg font-bold text-app-text">
-                  {day.count}
-                </div>
-              </div>
-            ))}
-          </div>
-        </PageSection>
-      </div>
+        )}
+      </PageSection>
     </PageShell>
   );
 }

@@ -8,7 +8,16 @@ import { deleteServiceAction } from "@/features/settings/actions";
 import SettingsDeleteButton from "@/components/settings-delete-button";
 import { toast } from "sonner";
 
-type Props = { services: ServiceItem[] };
+type Props = {
+  services: ServiceItem[];
+  configuration: Record<
+    string,
+    {
+      employeeCount: number;
+      roomCount: number;
+    }
+  >;
+};
 
 type EditableService = {
   id: string;
@@ -64,7 +73,7 @@ function inputToOrder(value: string) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-export default function ServicesTable({ services }: Props) {
+export default function ServicesTable({ services, configuration }: Props) {
   const initialItems = useMemo(() => services.map(toEditable), [services]);
   const [items, setItems] = useState<EditableService[]>(initialItems);
   const [pending, startTransition] = useTransition();
@@ -96,9 +105,16 @@ export default function ServicesTable({ services }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-app-muted">
-          Redoslijed određuje poziciju usluge unutar kategorije. Za raspon cijene ostavi fiksnu cijenu praznom i unesi Min + Max.
+      <div className="sticky top-2 z-40 flex flex-col gap-3 rounded-2xl border border-app-soft bg-white/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-sm text-app-muted">
+            Redoslijed određuje poziciju usluge unutar kategorije. Za raspon cijene ostavi fiksnu cijenu praznom i unesi Min + Max.
+          </div>
+          {hasChanges ? (
+            <div className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+              Imaš nespremljene promjene
+            </div>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => setItems(initialItems)} disabled={pending || !hasChanges} className="inline-flex items-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-2 text-sm font-medium disabled:opacity-50">
@@ -110,12 +126,13 @@ export default function ServicesTable({ services }: Props) {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-app-soft">
-        <table className="min-w-[2050px] border-collapse">
-          <thead className="bg-app-table-head">
+      <div className="max-h-[72vh] overflow-auto rounded-2xl border border-app-soft">
+        <table className="min-w-[2200px] border-collapse">
+          <thead className="sticky top-0 z-30 bg-app-table-head shadow-sm">
             <tr className="text-left text-sm text-app-muted">
               <th className="px-4 py-3">Redoslijed</th>
               <th className="px-4 py-3">Naziv HR / EN</th>
+              <th className="px-4 py-3">Provjera</th>
               <th className="px-4 py-3">Opis HR / EN</th>
               <th className="px-4 py-3">Trajanje</th>
               <th className="px-4 py-3">Fiksna €</th>
@@ -137,6 +154,40 @@ export default function ServicesTable({ services }: Props) {
                 <td className="space-y-2 px-4 py-4">
                   <input value={service.name} onChange={(e) => updateItem(service.id, "name", e.target.value)} className={inputClass} placeholder="HR" />
                   <input value={service.name_en} onChange={(e) => updateItem(service.id, "name_en", e.target.value)} className={inputClass} placeholder="EN" />
+                </td>
+                <td className="px-4 py-4">
+                  <div className="flex min-w-[180px] flex-col gap-1.5">
+                    {!service.is_active ? (
+                      <span className="w-fit rounded-full border border-neutral-200 bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
+                        Neaktivna
+                      </span>
+                    ) : null}
+                    {service.price_cents == null &&
+                    (service.price_min_cents == null || service.price_max_cents == null) ? (
+                      <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        Nema cijene
+                      </span>
+                    ) : null}
+                    {(configuration[service.id]?.employeeCount ?? 0) === 0 ? (
+                      <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        Nema djelatnika
+                      </span>
+                    ) : null}
+                    {(configuration[service.id]?.roomCount ?? 0) === 0 ? (
+                      <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        Nema sobe
+                      </span>
+                    ) : null}
+                    {service.is_active &&
+                    (service.price_cents != null ||
+                      (service.price_min_cents != null && service.price_max_cents != null)) &&
+                    (configuration[service.id]?.employeeCount ?? 0) > 0 &&
+                    (configuration[service.id]?.roomCount ?? 0) > 0 ? (
+                      <span className="w-fit rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
+                        Spremna
+                      </span>
+                    ) : null}
+                  </div>
                 </td>
                 <td className="space-y-2 px-4 py-4">
                   <textarea value={service.description} onChange={(e) => updateItem(service.id, "description", e.target.value)} rows={3} className={`${inputClass} min-w-[300px]`} placeholder="Opis HR" />
