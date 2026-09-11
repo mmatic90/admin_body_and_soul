@@ -101,6 +101,7 @@ export default async function AppointmentsPage({
           <AppointmentsListView
             appointments={appointments}
             isToday={selectedDate === zagrebNow.date}
+            isPastDay={selectedDate < zagrebNow.date}
             currentMinutes={zagrebNow.minutes}
           />
         )}
