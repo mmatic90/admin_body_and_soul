@@ -16,9 +16,6 @@ export default async function SettingsGroupLimitsPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-app-text">Paralelni termini po grupama</h1>
-              <p className="mt-2 text-app-muted">
-                Odredi koliko termina iz iste grupe može ići paralelno.
-              </p>
             </div>
 
             <Link
