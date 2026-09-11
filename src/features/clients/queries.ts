@@ -173,7 +173,7 @@ export async function getClientsList(
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().slice(0, 10);
 
-  return (data ?? []).map((client: any) => {
+  return (data ?? []).map((client) => {
     const appointments = (client.appointments ?? []) as {
       id: string;
       appointment_date: string;
@@ -535,10 +535,10 @@ export async function getClientOptions() {
       ? client.appointments
       : [];
     const noShowCount = appointments.filter(
-      (appointment: any) => appointment.status === "no_show",
+      (appointment) => appointment.status === "no_show",
     ).length;
     const cancelledCount = appointments.filter(
-      (appointment: any) => appointment.status === "cancelled",
+      (appointment) => appointment.status === "cancelled",
     ).length;
 
     return {
