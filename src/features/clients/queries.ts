@@ -510,7 +510,18 @@ export async function getClientOptions() {
 
   const { data, error } = await supabase
     .from("clients")
-    .select("id, full_name, phone, email, note, internal_note")
+    .select(`
+      id,
+      full_name,
+      phone,
+      email,
+      note,
+      internal_note,
+      appointments:appointments!appointments_client_id_fkey (
+        id,
+        status
+      )
+    `)
     .eq("is_active", true)
     .order("full_name", { ascending: true });
 
@@ -519,12 +530,35 @@ export async function getClientOptions() {
     throw new Error("Nije moguće dohvatiti klijente.");
   }
 
-  return (data ?? []) as {
-    id: string;
-    full_name: string;
-    phone: string | null;
-    email: string | null;
-    note: string | null;
-    internal_note: string | null;
-  }[];
+  return (data ?? []).map((client: any) => {
+    const appointments = Array.isArray(client.appointments)
+      ? client.appointments
+      : [];
+    const noShowCount = appointments.filter(
+      (appointment: any) => appointment.status === "no_show",
+    ).length;
+    const cancelledCount = appointments.filter(
+      (appointment: any) => appointment.status === "cancelled",
+    ).length;
+
+    return {
+      id: String(client.id),
+      full_name: String(client.full_name ?? ""),
+      phone: client.phone ? String(client.phone) : null,
+      email: client.email ? String(client.email) : null,
+      note: client.note ? String(client.note) : null,
+      internal_note: client.internal_note ? String(client.internal_note) : null,
+      appointments_count: appointments.length,
+      no_show_count: noShowCount,
+      cancelled_count: cancelledCount,
+      no_show_rate:
+        appointments.length > 0
+          ? Math.round((noShowCount / appointments.length) * 100)
+          : 0,
+      cancellation_rate:
+        appointments.length > 0
+          ? Math.round((cancelledCount / appointments.length) * 100)
+          : 0,
+    };
+  });
 }
