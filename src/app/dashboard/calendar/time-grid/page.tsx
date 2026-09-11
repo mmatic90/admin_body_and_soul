@@ -12,6 +12,7 @@ import {
 } from "@/features/calendar/time-grid-queries";
 import EmptyStateCard from "@/components/empty-state-card";
 import TimeGridLegendFilters from "@/components/time-grid-legend-filters";
+import TimeGridAppointmentBlock from "./appointment-block";
 
 type SearchParams = Promise<{
   date?: string;
@@ -48,51 +49,6 @@ function minutesToTop(minutes: number) {
   return ((minutes - START_HOUR * 60) / 60) * HOUR_HEIGHT;
 }
 
-function statusClasses(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "border-[#c7bcad] bg-[#ebe3d6]";
-    case "completed":
-      return "border-[#8a7d6f] bg-[#d8cec1]";
-    case "cancelled":
-      return "border-[#d8cdc0] bg-[#f2ece5] opacity-90";
-    case "no_show":
-      return "border-[#6a655f] bg-[#ded7cf]";
-    default:
-      return "border-app-soft bg-white";
-  }
-}
-
-function statusAccent(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "bg-[#B0A695]";
-    case "completed":
-      return "bg-[#776B5D]";
-    case "cancelled":
-      return "bg-[#B0A695]";
-    case "no_show":
-      return "bg-[#4B4844]";
-    default:
-      return "bg-app-muted";
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "Zakazan";
-    case "completed":
-      return "Odrađen";
-    case "cancelled":
-      return "Otkazan";
-    case "no_show":
-      return "No-show";
-    default:
-      return status;
-  }
-}
-
 function buildHalfHourLines() {
   const lines: number[] = [];
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
@@ -103,27 +59,55 @@ function buildHalfHourLines() {
   return lines;
 }
 
-function getCurrentTimeMarkerTop(date: string) {
-  const now = new Date();
-  const target = new Date(`${date}T00:00:00`);
+function getZagrebNow() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zagreb",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
 
-  if (
-    now.getFullYear() !== target.getFullYear() ||
-    now.getMonth() !== target.getMonth() ||
-    now.getDate() !== target.getDate()
-  ) {
-    return null;
-  }
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
 
-  const minutes = now.getHours() * 60 + now.getMinutes();
+  return {
+    date: `${map.year}-${map.month}-${map.day}`,
+    minutes: Number(map.hour) * 60 + Number(map.minute),
+  };
+}
+
+function getCurrentTimeMarkerTop(
+  selectedDate: string,
+  nowDate: string,
+  currentMinutes: number,
+) {
+  if (selectedDate !== nowDate) return null;
+
   const minMinutes = START_HOUR * 60;
   const maxMinutes = END_HOUR * 60;
 
-  if (minutes < minMinutes || minutes > maxMinutes) {
+  if (currentMinutes < minMinutes || currentMinutes > maxMinutes) {
     return null;
   }
 
-  return minutesToTop(minutes);
+  return minutesToTop(currentMinutes);
+}
+
+function isAppointmentCurrent(
+  appointment: TimeGridAppointment,
+  selectedDate: string,
+  nowDate: string,
+  currentMinutes: number,
+) {
+  if (selectedDate !== nowDate || appointment.status !== "scheduled") {
+    return false;
+  }
+
+  const start = timeToMinutes(appointment.start_time);
+  const end = timeToMinutes(appointment.end_time);
+  return start <= currentMinutes && currentMinutes < end;
 }
 
 function HeaderChip({
@@ -165,51 +149,6 @@ function filterAppointments(
     if (appointment.status === "no_show") return filters.showNoShow;
     return true;
   });
-}
-
-function AppointmentBlock({
-  appointment,
-  top,
-  height,
-}: {
-  appointment: TimeGridAppointment;
-  top: number;
-  height: number;
-}) {
-  return (
-    <Link
-      href={`/dashboard/appointments/${appointment.id}/edit`}
-      className={`absolute left-2 right-2 overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${statusClasses(
-        appointment.status,
-      )}`}
-      style={{ top, height }}
-    >
-      <div className="flex h-full">
-        <div className={`w-1.5 shrink-0 ${statusAccent(appointment.status)}`} />
-
-        <div className="min-w-0 flex-1 px-3 py-2.5">
-          <div className="flex items-start justify-between gap-2">
-            <div className="truncate text-[11px] font-semibold uppercase tracking-wide text-app-muted">
-              {formatTime(appointment.start_time)} -{" "}
-              {formatTime(appointment.end_time)}
-            </div>
-            <div className="shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-medium text-app-text">
-              {statusLabel(appointment.status)}
-            </div>
-          </div>
-
-          <div className="truncate text-sm font-semibold text-app-text">
-            {appointment.client_name}
-            {appointment.client_phone ? (
-              <div className="truncate text-xs text-app-muted">
-                {appointment.client_phone}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
 }
 
 function EmployeeShiftBackground({
@@ -297,7 +236,12 @@ export default async function TimeGridCalendarPage({
 
   const halfHourLines = buildHalfHourLines();
   const gridHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
-  const currentTimeTop = getCurrentTimeMarkerTop(selectedDate);
+  const zagrebNow = getZagrebNow();
+  const currentTimeTop = getCurrentTimeMarkerTop(
+    selectedDate,
+    zagrebNow.date,
+    zagrebNow.minutes,
+  );
 
   const employeesView =
     selectedView === "employees"
@@ -653,11 +597,17 @@ export default async function TimeGridCalendarPage({
                           );
 
                           return (
-                            <AppointmentBlock
+                            <TimeGridAppointmentBlock
                               key={appointment.id}
                               appointment={appointment}
                               top={top}
                               height={height}
+                              isCurrent={isAppointmentCurrent(
+                                appointment,
+                                selectedDate,
+                                zagrebNow.date,
+                                zagrebNow.minutes,
+                              )}
                             />
                           );
                         })}
@@ -717,11 +667,17 @@ export default async function TimeGridCalendarPage({
                           );
 
                           return (
-                            <AppointmentBlock
+                            <TimeGridAppointmentBlock
                               key={appointment.id}
                               appointment={appointment}
                               top={top}
                               height={height}
+                              isCurrent={isAppointmentCurrent(
+                                appointment,
+                                selectedDate,
+                                zagrebNow.date,
+                                zagrebNow.minutes,
+                              )}
                             />
                           );
                         })}
@@ -851,11 +807,17 @@ export default async function TimeGridCalendarPage({
                         );
 
                         return (
-                          <AppointmentBlock
+                          <TimeGridAppointmentBlock
                             key={appointment.id}
                             appointment={appointment}
                             top={top}
                             height={height}
+                            isCurrent={isAppointmentCurrent(
+                              appointment,
+                              selectedDate,
+                              zagrebNow.date,
+                              zagrebNow.minutes,
+                            )}
                           />
                         );
                       })}
@@ -907,11 +869,17 @@ export default async function TimeGridCalendarPage({
                         );
 
                         return (
-                          <AppointmentBlock
+                          <TimeGridAppointmentBlock
                             key={appointment.id}
                             appointment={appointment}
                             top={top}
                             height={height}
+                            isCurrent={isAppointmentCurrent(
+                              appointment,
+                              selectedDate,
+                              zagrebNow.date,
+                              zagrebNow.minutes,
+                            )}
                           />
                         );
                       })}
