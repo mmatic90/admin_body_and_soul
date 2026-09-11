@@ -76,6 +76,10 @@ export type ClientDetails = {
   insights: ClientInsights;
 };
 
+type RawClientAppointmentSummary = {
+  status?: string | null;
+};
+
 function getSingleRelation<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) {
     return value[0] ?? null;
@@ -531,7 +535,7 @@ export async function getClientOptions() {
   }
 
   return (data ?? []).map((client: any) => {
-    const appointments = Array.isArray(client.appointments)
+    const appointments: RawClientAppointmentSummary[] = Array.isArray(client.appointments)
       ? client.appointments
       : [];
     const noShowCount = appointments.filter(
