@@ -153,7 +153,7 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <span className="rounded-xl bg-app-card-alt p-2 text-app-accent"><Activity className="h-5 w-5" /></span>
-                <div><h2 className="text-lg font-bold text-app-text">Posljednje aktivnosti</h2><p className="text-sm text-app-muted">Najnovije promjene u sustavu.</p></div>
+                <div><h2 className="text-lg font-bold text-app-text">Posljednje aktivnosti</h2></div>
               </div>
               <Link href="/dashboard/settings/audit-log" className="inline-flex items-center gap-2 text-sm font-semibold text-app-accent">Prikaži sve <ArrowRight className="h-4 w-4" /></Link>
             </div>
