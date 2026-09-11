@@ -25,7 +25,6 @@ import type { AppointmentListItem } from "@/features/appointments/types";
 
 type Props = {
   appointments: AppointmentListItem[];
-  selectedDate: string;
   isToday: boolean;
   currentMinutes: number;
 };
@@ -71,7 +70,6 @@ function getStatusClasses(status: AppointmentListItem["status"]) {
 
 export default function AppointmentsListView({
   appointments,
-  selectedDate,
   isToday,
   currentMinutes,
 }: Props) {
