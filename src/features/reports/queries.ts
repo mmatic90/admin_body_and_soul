@@ -221,22 +221,24 @@ export async function getReportsDashboardData(
             }
           : null,
         appointment_services: Array.isArray(item.appointment_services)
-          ? (item.appointment_services as RawReportAppointmentService[])
-              .map((row) => {
+          ? (item.appointment_services as RawReportAppointmentService[]).flatMap(
+              (row): AppointmentServiceRow[] => {
                 const relatedService = getSingleRelation(row.service);
 
-                return relatedService
-                  ? {
-                      service: {
-                        id: String(relatedService.id ?? ""),
-                        name: String(relatedService.name ?? ""),
-                      },
-                    }
-                  : null;
-              })
-              .filter(
-                (row): row is AppointmentServiceRow => row !== null,
-              )
+                if (!relatedService) {
+                  return [];
+                }
+
+                return [
+                  {
+                    service: {
+                      id: String(relatedService.id ?? ""),
+                      name: String(relatedService.name ?? ""),
+                    },
+                  },
+                ];
+              },
+            )
           : [],
       };
     },
