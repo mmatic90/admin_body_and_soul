@@ -11,7 +11,13 @@ import type { AppointmentListItem } from "@/features/appointments/types";
 
 type Props = {
   appointments: AppointmentListItem[];
+  currentMinutes: number;
 };
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.slice(0, 5).split(":").map(Number);
+  return hours * 60 + minutes;
+}
 
 function getServiceLabel(item: AppointmentListItem) {
   const multi = item.appointment_services
@@ -24,9 +30,10 @@ function getServiceLabel(item: AppointmentListItem) {
   return item.service?.name ?? "Usluga";
 }
 
-export default function TodayAppointmentsPanel({ appointments }: Props) {
+export default function TodayAppointmentsPanel({ appointments, currentMinutes }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<AppointmentListItem | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<AppointmentListItem | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -83,44 +90,75 @@ export default function TodayAppointmentsPanel({ appointments }: Props) {
                 Dodaj termin
               </Link>
             </div>
-          ) : (
-            appointments.slice(0, 8).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setSelected(item)}
-                className="flex w-full flex-col gap-3 rounded-2xl border border-app-soft bg-white p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="min-w-[74px] rounded-xl bg-app-card-alt px-3 py-2 text-center">
-                    <div className="text-base font-bold text-app-text">{item.start_time.slice(0, 5)}</div>
-                    <div className="text-xs text-app-muted">{item.end_time.slice(0, 5)}</div>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-app-text">{item.client_name}</p>
-                    <p className="truncate text-sm text-app-muted">{getServiceLabel(item)}</p>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-app-muted">
-                      {item.employee ? <span>{item.employee.display_name}</span> : null}
-                      {item.room ? <span>{item.room.name}</span> : null}
-                    </div>
-                  </div>
-                </div>
-                <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-                  item.status === "completed"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-blue-100 text-blue-700"
-                }`}>
-                  {item.status === "completed" ? "Odrađeno" : "Zakazano"}
-                </span>
-              </button>
-            ))
-          )}
+          ) : (() => {
+            const ongoing = appointments.filter((item) => {
+              const start = timeToMinutes(item.start_time);
+              const end = timeToMinutes(item.end_time);
+              return start <= currentMinutes && currentMinutes < end;
+            });
+            const upcoming = appointments
+              .filter((item) => timeToMinutes(item.start_time) > currentMinutes)
+              .slice(0, 4);
+            const compactIds = new Set([...ongoing, ...upcoming].map((item) => item.id));
+            const compact = appointments.filter((item) => compactIds.has(item.id));
+            const visibleAppointments = showAll ? appointments : compact;
+            const hiddenCount = appointments.length - compact.length;
 
-          {appointments.length > 8 ? (
-            <Link href="/dashboard/calendar/time-grid" className="block rounded-xl bg-app-card-alt px-4 py-3 text-center text-sm font-semibold text-app-accent">
-              Prikaži još {appointments.length - 8} termina
-            </Link>
-          ) : null}
+            return (
+              <>
+                {visibleAppointments.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelected(item)}
+                    className="flex w-full flex-col gap-3 rounded-2xl border border-app-soft bg-white p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="min-w-[74px] rounded-xl bg-app-card-alt px-3 py-2 text-center">
+                        <div className="text-base font-bold text-app-text">{item.start_time.slice(0, 5)}</div>
+                        <div className="text-xs text-app-muted">{item.end_time.slice(0, 5)}</div>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-app-text">{item.client_name}</p>
+                        <p className="truncate text-sm text-app-muted">{getServiceLabel(item)}</p>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-app-muted">
+                          {item.employee ? <span>{item.employee.display_name}</span> : null}
+                          {item.room ? <span>{item.room.name}</span> : null}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+                      item.status === "completed"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}>
+                      {item.status === "completed" ? "Odrađeno" : "Zakazano"}
+                    </span>
+                  </button>
+                ))}
+
+                {!showAll && hiddenCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAll(true)}
+                    className="block w-full rounded-xl bg-app-card-alt px-4 py-3 text-center text-sm font-semibold text-app-accent transition hover:opacity-90"
+                  >
+                    Prikaži još {hiddenCount} termina
+                  </button>
+                ) : null}
+
+                {showAll && hiddenCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAll(false)}
+                    className="block w-full rounded-xl bg-app-card-alt px-4 py-3 text-center text-sm font-semibold text-app-accent transition hover:opacity-90"
+                  >
+                    Prikaži samo aktualne i sljedeće termine
+                  </button>
+                ) : null}
+              </>
+            );
+          })()}
         </div>
       </section>
 
