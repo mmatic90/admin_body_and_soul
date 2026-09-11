@@ -1,4 +1,6 @@
 import Link from "next/link";
+import PageShell from "@/components/page-shell";
+import PageHeader from "@/components/page-header";
 import { getEmployeesForSchedule } from "@/features/schedule/queries";
 import { requireAdminForScheduleManagement } from "@/lib/page-guards";
 
@@ -8,16 +10,11 @@ export default async function SchedulePage() {
   const employees = await getEmployeesForSchedule();
 
   return (
-    <main className="min-h-screen bg-app-bg p-6 md:p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-          <h1 className="text-3xl font-bold text-app-text">
-            Rasporedi zaposlenika
-          </h1>
-          <p className="mt-2 text-app-muted">
-            Upravljanje default rasporedom i dnevnim overrideovima.
-          </p>
-        </div>
+    <PageShell maxWidth="max-w-4xl">
+      <PageHeader
+        title="Rasporedi zaposlenika"
+        description="Upravljanje redovnim radnim vremenom i posebnim izmjenama po datumima."
+      />
 
         <div className="grid gap-4">
           {employees.map((employee) => (
@@ -41,7 +38,6 @@ export default async function SchedulePage() {
             </Link>
           ))}
         </div>
-      </div>
-    </main>
+    </PageShell>
   );
 }
