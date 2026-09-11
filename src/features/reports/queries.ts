@@ -210,7 +210,7 @@ export async function getReportsDashboardData(
           : null,
         appointment_services: Array.isArray(item.appointment_services)
           ? item.appointment_services
-              .map((row: any) => {
+              .map((row) => {
                 const relatedService = getSingleRelation(row.service);
 
                 return relatedService
