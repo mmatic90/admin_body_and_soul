@@ -42,7 +42,7 @@ export default function OverrideForm({ employeeId }: Props) {
           <input id="date_to" name="date_to" type="date" value={dateTo} min={dateFrom} onChange={(e) => setDateTo(e.target.value)} className={inputClass} required />
         </div>
         <div>
-          <label htmlFor="override_type" className="mb-1.5 block text-sm font-semibold text-app-text">Tip overridea</label>
+          <label htmlFor="override_type" className="mb-1.5 block text-sm font-semibold text-app-text">Vrsta izmjene</label>
           <select id="override_type" name="override_type" value={overrideType} onChange={(e) => setOverrideType(e.target.value)} className={inputClass} required>
             <option value="custom_hours">Posebno radno vrijeme</option>
             <option value="day_off">Slobodan dan</option>
