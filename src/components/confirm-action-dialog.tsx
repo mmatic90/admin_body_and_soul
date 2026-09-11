@@ -9,6 +9,8 @@ type Props = {
   confirmLabel?: string;
   cancelLabel?: string;
   pending?: boolean;
+  pendingLabel?: string;
+  tone?: "danger" | "primary";
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -20,6 +22,8 @@ export default function ConfirmActionDialog({
   confirmLabel = "Potvrdi",
   cancelLabel = "Odustani",
   pending = false,
+  pendingLabel = "Spremanje...",
+  tone = "danger",
   onConfirm,
   onCancel,
 }: Props) {
@@ -43,8 +47,17 @@ export default function ConfirmActionDialog({
           <button type="button" onClick={onCancel} disabled={pending} className="rounded-xl border border-app-soft px-4 py-2.5 font-medium text-app-text transition hover:bg-app-bg disabled:opacity-50">
             {cancelLabel}
           </button>
-          <button type="button" onClick={onConfirm} disabled={pending} className="rounded-xl bg-red-600 px-4 py-2.5 font-medium text-white transition hover:bg-red-700 disabled:opacity-50">
-            {pending ? "Brisanje..." : confirmLabel}
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={pending}
+            className={`rounded-xl px-4 py-2.5 font-medium text-white transition disabled:opacity-50 ${
+              tone === "danger"
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-app-accent hover:opacity-90"
+            }`}
+          >
+            {pending ? pendingLabel : confirmLabel}
           </button>
         </div>
       </div>
