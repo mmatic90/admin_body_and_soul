@@ -171,7 +171,7 @@ export default async function DashboardPage() {
                 activeToday.slice(0, 8).map((item) => (
                   <Link
                     key={item.id}
-                    href={`/dashboard/appointments/${item.id}`}
+                    href={`/dashboard/appointments/${item.id}/edit`}
                     className="flex flex-col gap-3 rounded-2xl border border-app-soft bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex min-w-0 items-start gap-3">
