@@ -20,6 +20,19 @@ import { calculateTotalDuration } from "@/features/appointments/calculate-total-
 import type { AppointmentServiceInput } from "@/features/appointments/types";
 import { addMinutesToTimeString } from "@/features/appointments/time-helpers";
 
+type RepeatPrefill = {
+  sourceAppointmentId: string;
+  clientId: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+  clientNote: string;
+  internalNote: string;
+  employeeId: string;
+  roomId: string;
+  services: AppointmentServiceInput[];
+};
+
 type Props = {
   services: AppointmentFormService[];
   employees: AppointmentFormEmployee[];
@@ -28,6 +41,7 @@ type Props = {
   employeeServices: AppointmentFormEmployeeService[];
   clients: ClientComboboxItem[];
   defaultDate: string;
+  repeatPrefill?: RepeatPrefill;
 };
 
 function parseServicesJson(raw: string): AppointmentServiceInput[] {
@@ -69,24 +83,29 @@ export default function NewAppointmentForm({
   employeeServices,
   clients,
   defaultDate,
+  repeatPrefill,
 }: Props) {
   const initialState: ActionState = {
     error: "",
     values: {
       appointment_date: defaultDate || getTodayLocalDate(),
       start_time: "",
-      client_id: "",
-      client_name: "",
-      client_phone: "",
-      client_email: "",
-      service_id: "",
-      employee_id: "",
-      room_id: "",
-      duration_minutes: "",
+      client_id: repeatPrefill?.clientId ?? "",
+      client_name: repeatPrefill?.clientName ?? "",
+      client_phone: repeatPrefill?.clientPhone ?? "",
+      client_email: repeatPrefill?.clientEmail ?? "",
+      service_id: repeatPrefill?.services[0]?.service_id ?? "",
+      employee_id: repeatPrefill?.employeeId ?? "",
+      room_id: repeatPrefill?.roomId ?? "",
+      duration_minutes: repeatPrefill?.services[0]?.duration_minutes
+        ? String(repeatPrefill.services[0].duration_minutes)
+        : "",
       status: "scheduled",
-      client_note: "",
-      internal_note: "",
-      services_json: "[]",
+      client_note: repeatPrefill?.clientNote ?? "",
+      internal_note: repeatPrefill?.internalNote ?? "",
+      services_json: repeatPrefill?.services.length
+        ? JSON.stringify(repeatPrefill.services)
+        : "[]",
     },
   };
 
@@ -413,6 +432,12 @@ export default function NewAppointmentForm({
   return (
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="client_id" value={selectedClientId} />
+
+      {repeatPrefill ? (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          Podaci o klijentu i uslugama preuzeti su iz prethodnog termina. Odaberi novi datum i vrijeme te provjeri zaposlenika i sobu prije spremanja.
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1">
