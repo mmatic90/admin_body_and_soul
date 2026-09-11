@@ -204,10 +204,7 @@ export default async function ReportsPage({
 
   return (
     <PageShell maxWidth="max-w-7xl">
-      <PageHeader
-        title="Izvještaji"
-        description="Pregled termina, dolazaka, online rezervacija, usluga i djelatnika."
-      />
+      <PageHeader title="Izvještaji" />
 
       <div className="rounded-2xl border border-app-soft bg-app-card p-4 shadow-sm">
         <div className="flex flex-wrap gap-2">
