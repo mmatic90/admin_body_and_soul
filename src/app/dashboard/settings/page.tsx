@@ -29,10 +29,7 @@ export default async function SettingsPage() {
 
   return (
     <PageShell maxWidth="max-w-7xl">
-      <PageHeader
-        title="Postavke"
-        description="Upravljanje osnovnim podacima, pravilima i administracijom salona."
-      />
+      <PageHeader title="Postavke" />
 
       <PageSection title="Osnovno">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
