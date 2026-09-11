@@ -8,6 +8,7 @@ import {
   Clock3,
   LayoutDashboard,
   ListChecks,
+  ChartNoAxesColumnIncreasing,
   PanelLeft,
   PanelLeftClose,
   Settings,
@@ -28,7 +29,7 @@ type Props = {
 const allNavItems = [
   {
     href: "/dashboard",
-    label: "Dashboard",
+    label: "Početna",
     icon: LayoutDashboard,
     roles: ["admin", "employee"],
   },
@@ -58,7 +59,7 @@ const allNavItems = [
   },
   {
     href: "/dashboard/calendar/time-grid",
-    label: "Time Grid",
+    label: "Dnevni raspored",
     icon: Clock3,
     roles: ["admin", "employee"],
   },
@@ -77,13 +78,13 @@ const allNavItems = [
   {
     href: "/dashboard/schedule",
     label: "Rasporedi",
-    icon: Users,
+    icon: Clock3,
     roles: ["admin"],
   },
   {
     href: "/dashboard/reports",
-    label: "Reports",
-    icon: LayoutDashboard,
+    label: "Izvještaji",
+    icon: ChartNoAxesColumnIncreasing,
     roles: ["admin"],
   },
   {
@@ -147,25 +148,18 @@ export default function DashboardSidebar({ role, displayName }: Props) {
             )}
           </button>
         </div>
-
-        <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-app-soft bg-app-card-alt px-4 py-3">
-          <div className="text-sm text-app-muted">
-            Logiran kao:{" "}
-            <span className="font-medium text-app-text">{displayName}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/account"
-              className="rounded-xl border border-app-soft bg-white px-3 py-2 text-sm font-medium text-app-text transition hover:bg-app-bg"
-            >
-              Moj račun
-            </Link>
-            <LogoutButton />
-          </div>
-        </div>
-
         {mobileOpen && (
           <div className="mt-4 space-y-2">
+            <div className="mb-3 rounded-2xl border border-app-soft bg-app-card-alt px-4 py-3">
+              <div className="text-sm text-app-muted">
+                Prijavljen/a kao:{" "}
+                <span className="font-medium text-app-text">{displayName}</span>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <Link href="/dashboard/account" onClick={() => setMobileOpen(false)} className="rounded-xl border border-app-soft bg-white px-3 py-2 text-sm font-medium text-app-text transition hover:bg-app-bg">Moj račun</Link>
+                <LogoutButton />
+              </div>
+            </div>
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(pathname, item.href);
@@ -272,7 +266,7 @@ export default function DashboardSidebar({ role, displayName }: Props) {
             {!desktopCollapsed ? (
               <>
                 <div className="text-sm text-app-muted">
-                  Logiran kao:{" "}
+                  Prijavljen/a kao:{" "}
                   <span className="font-medium text-app-text">
                     {displayName}
                   </span>
