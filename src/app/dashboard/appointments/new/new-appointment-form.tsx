@@ -149,6 +149,9 @@ export default function NewAppointmentForm({
   ]);
 
   const [workingEmployeeIds, setWorkingEmployeeIds] = useState<string[]>([]);
+  const [employeeAvailability, setEmployeeAvailability] = useState<
+    { id: string; display_name: string; is_working: boolean; reason: string }[]
+  >([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
   const [serviceChangeNotice, setServiceChangeNotice] = useState("");
@@ -186,6 +189,7 @@ export default function NewAppointmentForm({
     async function loadAvailability() {
       if (!selectedDate) {
         setWorkingEmployeeIds([]);
+        setEmployeeAvailability([]);
         return;
       }
 
@@ -209,10 +213,12 @@ export default function NewAppointmentForm({
 
         if (!cancelled) {
           setWorkingEmployeeIds(result.workingEmployeeIds ?? []);
+          setEmployeeAvailability(result.employeeAvailability ?? []);
         }
       } catch (error) {
         if (!cancelled) {
           setWorkingEmployeeIds([]);
+          setEmployeeAvailability([]);
           setAvailabilityError(
             error instanceof Error
               ? error.message
@@ -356,6 +362,42 @@ export default function NewAppointmentForm({
     if (allSelectedServiceIds.length === 0) return rooms;
     return rooms.filter((room) => allowedRoomIds.has(room.id));
   }, [allSelectedServiceIds, rooms, allowedRoomIds]);
+
+  const unavailableEmployeeReasons = useMemo(() => {
+    if (allSelectedServiceIds.length === 0) return [];
+
+    return employees
+      .filter((employee) => allowedEmployeeIds.has(employee.id))
+      .filter((employee) => !workingEmployeeIdSet.has(employee.id))
+      .map((employee) => {
+        const availability = employeeAvailability.find(
+          (item) => item.id === employee.id,
+        );
+        return {
+          id: employee.id,
+          name: employee.display_name,
+          reason: availability?.reason ?? "Nije dostupan na odabrani datum.",
+        };
+      });
+  }, [
+    allSelectedServiceIds,
+    employees,
+    allowedEmployeeIds,
+    workingEmployeeIdSet,
+    employeeAvailability,
+  ]);
+
+  const serviceCapabilityIssue = useMemo(() => {
+    if (allSelectedServiceIds.length === 0 || allowedEmployeeIds.size > 0) {
+      return "";
+    }
+
+    if (allSelectedServiceIds.length === 1) {
+      return "Nijedan aktivni zaposlenik nije povezan s odabranom uslugom.";
+    }
+
+    return "Nijedan zaposlenik nije postavljen da može odraditi sve odabrane usluge u istom terminu.";
+  }, [allSelectedServiceIds, allowedEmployeeIds]);
 
   const filteredEmployees = useMemo(() => {
     if (allSelectedServiceIds.length === 0) return [];
@@ -708,8 +750,27 @@ export default function NewAppointmentForm({
       !availabilityLoading &&
       filteredEmployees.length === 0 ? (
         <div className={messageWarnClass}>
-          Nema zaposlenika koji mogu raditi sve odabrane usluge na odabrani
-          datum.
+          <div className="font-semibold">Nema dostupnog zaposlenika</div>
+          <div className="mt-1">
+            {serviceCapabilityIssue ||
+              "Zaposlenici koji mogu raditi odabrane usluge ne rade na odabrani datum."}
+          </div>
+
+          {unavailableEmployeeReasons.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {unavailableEmployeeReasons.map((employee) => (
+                <li key={employee.id}>
+                  <span className="font-medium">{employee.name}:</span>{" "}
+                  {employee.reason}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <div className="mt-2 text-xs">
+            Pokušaj odabrati drugi datum ili provjeri raspored i povezivanje
+            zaposlenika s uslugama.
+          </div>
         </div>
       ) : null}
 
