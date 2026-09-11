@@ -206,18 +206,6 @@ export default async function DashboardPage() {
               ) : null}
             </div>
           </section>
-
-          <div className="space-y-6">
-            <DashboardOverviewWidget
-              pendingOnlineCount={overviewStats.pendingOnlineCount}
-              todayOnlineCount={overviewStats.todayOnlineCount}
-              todayAppointmentsCount={overviewStats.todayAppointmentsCount}
-              tomorrowAppointmentsCount={overviewStats.tomorrowAppointmentsCount}
-              completedThisMonthCount={overviewStats.completedThisMonthCount}
-              noShowThisMonthCount={overviewStats.noShowThisMonthCount}
-              onlineConversionRate={overviewStats.onlineConversionRate}
-            />
-          </div>
         </div>
 
         {canViewAudit ? (
