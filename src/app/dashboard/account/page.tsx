@@ -34,7 +34,7 @@ export default async function AccountPage() {
         description="Uredi prikazano ime, boju zaposlenika i lozinku."
       />
 
-      <PageSection title="Osnovni podaci" description={`Login email: ${email}`}>
+      <PageSection title="Osnovni podaci" description={`Email za prijavu: ${email}`}>
         <AccountProfileForm
           initialDisplayName={displayName}
           initialColorHex={employee?.color_hex ?? permissions.colorHex}
