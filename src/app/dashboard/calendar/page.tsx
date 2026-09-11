@@ -158,9 +158,6 @@ export default async function CalendarPage({
               <h1 className="text-2xl font-bold text-app-text md:text-3xl">
                 Dnevni kalendar
               </h1>
-              <p className="mt-2 text-sm text-app-muted md:text-base">
-                Pregled termina za {formatDateTitle(selectedDate)}
-              </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
