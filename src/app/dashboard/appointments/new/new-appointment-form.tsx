@@ -101,8 +101,8 @@ export default function NewAppointmentForm({
         ? String(repeatPrefill.services[0].duration_minutes)
         : "",
       status: "scheduled",
-      client_note: repeatPrefill?.clientNote ?? "",
-      internal_note: repeatPrefill?.internalNote ?? "",
+      client_note: "",
+      internal_note: "",
       services_json: repeatPrefill?.services.length
         ? JSON.stringify(repeatPrefill.services)
         : "[]",
@@ -520,8 +520,8 @@ export default function NewAppointmentForm({
             setClientName(client.full_name);
             setClientPhone(client.phone ?? "");
             setClientEmail(client.email ?? "");
-            setClientNote(client.note ?? "");
-            setInternalNote(client.internal_note ?? "");
+            setClientNote("");
+            setInternalNote("");
           }}
           onUseTypedAsNew={(typedValue) => {
             setSelectedClientId("");
