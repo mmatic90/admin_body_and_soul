@@ -26,6 +26,7 @@ import type { AppointmentListItem } from "@/features/appointments/types";
 type Props = {
   appointments: AppointmentListItem[];
   isToday: boolean;
+  isPastDay: boolean;
   currentMinutes: number;
 };
 
@@ -71,6 +72,7 @@ function getStatusClasses(status: AppointmentListItem["status"]) {
 export default function AppointmentsListView({
   appointments,
   isToday,
+  isPastDay,
   currentMinutes,
 }: Props) {
   const router = useRouter();
@@ -91,9 +93,8 @@ export default function AppointmentsListView({
           start <= currentMinutes &&
           currentMinutes < end;
         const waitsForStatus =
-          isToday &&
           appointment.status === "scheduled" &&
-          end <= currentMinutes;
+          (isPastDay || (isToday && end <= currentMinutes));
 
         return {
           appointment,
@@ -102,7 +103,7 @@ export default function AppointmentsListView({
           serviceLabel: getServiceLabel(appointment),
         };
       }),
-    [appointments, currentMinutes, isToday],
+    [appointments, currentMinutes, isPastDay, isToday],
   );
 
   function updateStatus(status: "completed" | "no_show" | "cancelled") {
