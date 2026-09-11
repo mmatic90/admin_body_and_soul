@@ -145,7 +145,7 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <div>
+        <div className={canViewAudit ? "grid gap-6 lg:grid-cols-2" : ""}>
           <section className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -206,10 +206,9 @@ export default async function DashboardPage() {
               ) : null}
             </div>
           </section>
-        </div>
 
-        {canViewAudit ? (
-          <section className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
+          {canViewAudit ? (
+            <section className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <span className="rounded-xl bg-app-card-alt p-2 text-app-accent"><Activity className="h-5 w-5" /></span>
@@ -225,8 +224,9 @@ export default async function DashboardPage() {
                 </Link>
               ))}
             </div>
-          </section>
-        ) : null}
+            </section>
+          ) : null}
+        </div>
 
         <section>
           <div className="mb-3">
