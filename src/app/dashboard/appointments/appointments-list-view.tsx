@@ -22,6 +22,10 @@ import {
 } from "@/features/appointments/actions";
 import { formatAppointmentServicesLabel } from "@/features/appointments/format-appointment-services";
 import type { AppointmentListItem } from "@/features/appointments/types";
+import {
+  getAppointmentStatusBadgeClass,
+  getAppointmentStatusLabel,
+} from "@/features/appointments/status-ui";
 
 type Props = {
   appointments: AppointmentListItem[];
@@ -41,32 +45,6 @@ function getServiceLabel(item: AppointmentListItem) {
       ?.slice()
       .sort((a, b) => a.sort_order - b.sort_order),
   );
-}
-
-function getStatusLabel(status: AppointmentListItem["status"]) {
-  switch (status) {
-    case "scheduled":
-      return "Zakazano";
-    case "completed":
-      return "Odrađeno";
-    case "cancelled":
-      return "Otkazano";
-    case "no_show":
-      return "No-show";
-  }
-}
-
-function getStatusClasses(status: AppointmentListItem["status"]) {
-  switch (status) {
-    case "completed":
-      return "bg-green-100 text-green-700";
-    case "cancelled":
-      return "bg-red-100 text-red-700";
-    case "no_show":
-      return "bg-amber-100 text-amber-800";
-    default:
-      return "bg-blue-100 text-blue-700";
-  }
 }
 
 export default function AppointmentsListView({
@@ -168,11 +146,11 @@ export default function AppointmentsListView({
           </span>
         ) : null}
         <span
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusClasses(
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAppointmentStatusBadgeClass(
             appointment.status,
           )}`}
         >
-          {getStatusLabel(appointment.status)}
+          {getAppointmentStatusLabel(appointment.status)}
         </span>
       </div>
     );
@@ -330,7 +308,7 @@ export default function AppointmentsListView({
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Status</p>
-                <p className="mt-1 font-semibold text-app-text">{getStatusLabel(selected.status)}</p>
+                <p className="mt-1 font-semibold text-app-text">{getAppointmentStatusLabel(selected.status)}</p>
               </div>
               <div className="sm:col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Usluga</p>
