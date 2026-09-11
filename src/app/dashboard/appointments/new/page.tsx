@@ -9,6 +9,7 @@ import { getClientOptions } from "@/features/clients/queries";
 type SearchParams = Promise<{
   date?: string;
   repeat?: string;
+  client?: string;
 }>;
 
 export default async function NewAppointmentPage({
@@ -70,6 +71,19 @@ export default async function NewAppointmentPage({
       }
     : undefined;
 
+  const selectedClient = resolvedSearchParams.client
+    ? clients.find((client) => client.id === resolvedSearchParams.client) ?? null
+    : null;
+
+  const clientPrefill = selectedClient
+    ? {
+        clientId: selectedClient.id,
+        clientName: selectedClient.full_name,
+        clientPhone: selectedClient.phone ?? "",
+        clientEmail: selectedClient.email ?? "",
+      }
+    : undefined;
+
   return (
     <main className="min-h-screen bg-app-bg p-6 md:p-8">
       <div className="mx-auto max-w-4xl space-y-6">
@@ -101,6 +115,7 @@ export default async function NewAppointmentPage({
             clients={clients}
             defaultDate={defaultDate}
             repeatPrefill={repeatPrefill}
+            clientPrefill={clientPrefill}
           />
         </div>
       </div>
