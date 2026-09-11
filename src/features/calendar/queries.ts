@@ -54,6 +54,14 @@ export type CalendarEmployeeGroup = {
   appointments: CalendarAppointmentItem[];
 };
 
+type RawCalendarServiceItem = {
+  id?: unknown;
+  service_id?: unknown;
+  duration_minutes?: unknown;
+  sort_order?: unknown;
+  service?: unknown;
+};
+
 function getSingleRelation<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) {
     return value[0] ?? null;
@@ -141,7 +149,7 @@ async function getCalendarAppointments(
           }
         : null,
       appointment_services: Array.isArray(item.appointment_services)
-        ? item.appointment_services.map((serviceItem) => {
+        ? (item.appointment_services as RawCalendarServiceItem[]).map((serviceItem) => {
             const serviceRelation = getSingleRelation(serviceItem.service);
 
             return {
