@@ -78,10 +78,23 @@ function getTodayLabel() {
   }).format(new Date());
 }
 
+function getZagrebCurrentMinutes() {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Zagreb",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return Number(map.hour) * 60 + Number(map.minute);
+}
+
 export default async function DashboardPage() {
   const permissions = await requireDashboardUser();
   const canViewAudit = canAccessSettings(permissions.role);
   const todayValue = getZagrebDateValue();
+  const currentMinutes = getZagrebCurrentMinutes();
 
   const [overdueAppointments, overviewStats, recentAudit, todayAppointments] = await Promise.all([
     getOverdueScheduledAppointments(),
@@ -136,7 +149,7 @@ export default async function DashboardPage() {
         </section>
 
         <div className={canViewAudit ? "grid gap-6 lg:grid-cols-2" : ""}>
-          <TodayAppointmentsPanel appointments={activeToday} />
+          <TodayAppointmentsPanel appointments={activeToday} currentMinutes={currentMinutes} />
 
           {canViewAudit ? (
             <section className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
@@ -162,7 +175,6 @@ export default async function DashboardPage() {
         <section>
           <div className="mb-3">
             <h2 className="text-lg font-bold text-app-text">Ostalo</h2>
-            <p className="text-sm text-app-muted">Rjeđe korištene funkcije i administracija.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <DashboardLinkCard href="/dashboard/appointments" title="Termini" description="Pregled i upravljanje terminima." icon={Calendar} />
