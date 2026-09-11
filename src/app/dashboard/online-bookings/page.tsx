@@ -148,11 +148,17 @@ export default async function OnlineBookingsPage({
         ) : (
           <div className="space-y-4">
             {bookings.map((booking) => {
+              const quickEmployeeId =
+                booking.final_employee_id || booking.suggested_employee_id;
+              const quickRoomId =
+                booking.final_room_id || booking.suggested_room_id;
+              const quickDuration =
+                booking.final_duration_minutes || booking.duration_minutes;
               const canQuickAccept =
                 booking.status === "pending" &&
-                booking.final_employee_id &&
-                booking.final_room_id &&
-                (booking.final_duration_minutes || booking.duration_minutes);
+                quickEmployeeId &&
+                quickRoomId &&
+                quickDuration;
 
               return (
                 <article
@@ -196,12 +202,9 @@ export default async function OnlineBookingsPage({
                           clientName={booking.client_full_name}
                           dateLabel={formatDateHr(booking.requested_date)}
                           time={booking.start_time?.slice(0, 5)}
-                          employeeId={booking.final_employee_id}
-                          roomId={booking.final_room_id}
-                          durationMinutes={
-                            booking.final_duration_minutes ??
-                            booking.duration_minutes
-                          }
+                          employeeId={quickEmployeeId}
+                          roomId={quickRoomId}
+                          durationMinutes={quickDuration}
                           canAccept={Boolean(canQuickAccept)}
                         />
                       ) : null}
