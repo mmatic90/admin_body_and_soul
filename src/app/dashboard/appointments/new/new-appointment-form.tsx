@@ -241,6 +241,36 @@ export default function NewAppointmentForm({
     return addMinutesToTimeString(startTime, totalDuration);
   }, [startTime, totalDuration]);
 
+  const selectedClient = useMemo(
+    () => clients.find((client) => client.id === selectedClientId) ?? null,
+    [clients, selectedClientId],
+  );
+
+  const clientRiskWarnings = useMemo(() => {
+    if (!selectedClient) return [] as string[];
+    const warnings: string[] = [];
+
+    if (
+      (selectedClient.no_show_count ?? 0) >= 2 ||
+      (selectedClient.no_show_rate ?? 0) >= 25
+    ) {
+      warnings.push(
+        `No-show: ${selectedClient.no_show_count ?? 0} puta (${selectedClient.no_show_rate ?? 0}%).`,
+      );
+    }
+
+    if (
+      (selectedClient.cancelled_count ?? 0) >= 2 ||
+      (selectedClient.cancellation_rate ?? 0) >= 25
+    ) {
+      warnings.push(
+        `Otkazivanja: ${selectedClient.cancelled_count ?? 0} puta (${selectedClient.cancellation_rate ?? 0}%).`,
+      );
+    }
+
+    return warnings;
+  }, [selectedClient]);
+
   const selectedPrimaryService = useMemo(
     () => services.find((service) => service.id === primaryServiceId) ?? null,
     [services, primaryServiceId],
@@ -502,6 +532,15 @@ export default function NewAppointmentForm({
           }}
         />
       </div>
+
+      {clientRiskWarnings.length > 0 ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="font-semibold">Napomena za ovog klijenta</div>
+          <div className="mt-1">
+            {clientRiskWarnings.join(" ")} Provjeri termin s klijentom prije spremanja ako je potrebno.
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1">
