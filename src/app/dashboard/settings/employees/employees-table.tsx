@@ -9,6 +9,7 @@ import {
   resetEmployeePasswordAction,
 } from "@/features/settings/actions";
 import { toast } from "sonner";
+import ConfirmActionDialog from "@/components/confirm-action-dialog";
 
 type Props = {
   employees: EmployeeItem[];
@@ -40,6 +41,8 @@ export default function EmployeesTable({ employees }: Props) {
   const [items, setItems] = useState<EditableEmployee[]>(initialItems);
   const [pending, startTransition] = useTransition();
   const [actionPendingId, setActionPendingId] = useState<string | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<EditableEmployee | null>(null);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<EditableEmployee | null>(null);
 
   const hasChanges = JSON.stringify(items) !== JSON.stringify(initialItems);
 
@@ -113,12 +116,28 @@ export default function EmployeesTable({ employees }: Props) {
     });
   }
 
+  function requestActiveToggle(employee: EditableEmployee) {
+    if (employee.is_active) {
+      setDeactivateTarget(employee);
+      return;
+    }
+
+    updateItem(employee.id, "is_active", true);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-app-muted">
-          Uredi djelatnike pa klikni{" "}
-          <span className="font-medium text-app-text">Spremi izmjene</span>.
+        <div>
+          <div className="text-sm text-app-muted">
+            Uredi djelatnike pa klikni{" "}
+            <span className="font-medium text-app-text">Spremi izmjene</span>.
+          </div>
+          {hasChanges ? (
+            <div className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+              Imaš nespremljene promjene
+            </div>
+          ) : null}
         </div>
 
         <div className="flex gap-2">
@@ -214,9 +233,7 @@ export default function EmployeesTable({ employees }: Props) {
                     type="button"
                     role="switch"
                     aria-checked={employee.is_active}
-                    onClick={() =>
-                      updateItem(employee.id, "is_active", !employee.is_active)
-                    }
+                    onClick={() => requestActiveToggle(employee)}
                     className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
                       employee.is_active ? "bg-app-accent" : "bg-app-soft"
                     }`}
@@ -233,7 +250,7 @@ export default function EmployeesTable({ employees }: Props) {
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => resetPassword(employee.id)}
+                      onClick={() => setResetPasswordTarget(employee)}
                       disabled={pending || actionPendingId === employee.id}
                       className="inline-flex items-center gap-2 rounded-xl border border-app-soft bg-white px-3 py-2 text-sm font-medium text-app-text transition hover:bg-app-bg disabled:opacity-50"
                     >
@@ -243,7 +260,7 @@ export default function EmployeesTable({ employees }: Props) {
 
                     <button
                       type="button"
-                      onClick={() => deactivateEmployee(employee.id)}
+                      onClick={() => setDeactivateTarget(employee)}
                       disabled={
                         pending ||
                         actionPendingId === employee.id ||
@@ -261,6 +278,48 @@ export default function EmployeesTable({ employees }: Props) {
           </tbody>
         </table>
       </div>
+
+      <ConfirmActionDialog
+        open={Boolean(deactivateTarget)}
+        title="Deaktivirati zaposlenika?"
+        description={
+          deactivateTarget
+            ? `${deactivateTarget.display_name} više neće biti aktivan zaposlenik i neće se nuditi u novim terminima. Postojeći podaci i povijest ostaju sačuvani.`
+            : ""
+        }
+        confirmLabel="Da, deaktiviraj"
+        pending={Boolean(actionPendingId && deactivateTarget?.id === actionPendingId)}
+        pendingLabel="Deaktiviranje..."
+        tone="danger"
+        onCancel={() => setDeactivateTarget(null)}
+        onConfirm={() => {
+          if (!deactivateTarget) return;
+          const id = deactivateTarget.id;
+          setDeactivateTarget(null);
+          deactivateEmployee(id);
+        }}
+      />
+
+      <ConfirmActionDialog
+        open={Boolean(resetPasswordTarget)}
+        title="Resetirati lozinku?"
+        description={
+          resetPasswordTarget
+            ? `Resetirat će se lozinka za ${resetPasswordTarget.display_name}. Korisnik će nakon toga morati koristiti novu pristupnu lozinku.`
+            : ""
+        }
+        confirmLabel="Resetiraj lozinku"
+        pending={Boolean(actionPendingId && resetPasswordTarget?.id === actionPendingId)}
+        pendingLabel="Resetiranje..."
+        tone="primary"
+        onCancel={() => setResetPasswordTarget(null)}
+        onConfirm={() => {
+          if (!resetPasswordTarget) return;
+          const id = resetPasswordTarget.id;
+          setResetPasswordTarget(null);
+          resetPassword(id);
+        }}
+      />
     </div>
   );
 }
