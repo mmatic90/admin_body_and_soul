@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 type Props = {
   rooms: RoomItem[];
+  serviceCounts: Record<string, number>;
 };
 
 type EditableRoom = {
@@ -28,7 +29,7 @@ function toEditable(room: RoomItem): EditableRoom {
   };
 }
 
-export default function RoomsTable({ rooms }: Props) {
+export default function RoomsTable({ rooms, serviceCounts }: Props) {
   const initialItems = useMemo(() => rooms.map(toEditable), [rooms]);
 
   const [items, setItems] = useState<EditableRoom[]>(initialItems);
@@ -103,6 +104,7 @@ export default function RoomsTable({ rooms }: Props) {
           <thead className="sticky top-0 z-30 bg-app-table-head shadow-sm">
             <tr className="text-left text-sm text-app-muted">
               <th className="px-4 py-3 font-semibold">Naziv</th>
+              <th className="px-4 py-3 font-semibold">Povezane usluge</th>
               <th className="px-4 py-3 font-semibold">Aktivno</th>
               <th className="px-4 py-3 font-semibold">Akcije</th>
             </tr>
@@ -122,6 +124,12 @@ export default function RoomsTable({ rooms }: Props) {
                     }
                     className="w-full min-w-[240px] rounded-lg border border-app-soft bg-white px-3 py-2 text-app-text outline-none"
                   />
+                </td>
+
+                <td className="px-4 py-4">
+                  <span className="rounded-full bg-app-card-alt px-3 py-1 text-xs font-semibold text-app-text">
+                    {serviceCounts[room.id] ?? 0}
+                  </span>
                 </td>
 
                 <td className="px-4 py-4">
