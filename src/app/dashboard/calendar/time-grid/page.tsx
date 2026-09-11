@@ -310,11 +310,8 @@ export default async function TimeGridCalendarPage({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-app-text md:text-3xl">
-                Time-grid kalendar
+                Dnevni raspored
               </h1>
-              <p className="mt-2 text-sm text-app-muted md:text-base">
-                Vizualni dnevni raspored za {formatDateTitle(selectedDate)}
-              </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -349,7 +346,7 @@ export default async function TimeGridCalendarPage({
                   showCancelled ? "1" : "0"
                 }&no_show=${showNoShow ? "1" : "0"}`}
               >
-                Time-grid po zaposlenicima
+                Po zaposlenicima
               </HeaderChip>
 
               <HeaderChip
@@ -360,14 +357,14 @@ export default async function TimeGridCalendarPage({
                   showCancelled ? "1" : "0"
                 }&no_show=${showNoShow ? "1" : "0"}`}
               >
-                Time-grid po sobama
+                Po sobama
               </HeaderChip>
 
               <HeaderChip
                 active={false}
                 href={`/dashboard/calendar?date=${selectedDate}&view=employees`}
               >
-                Card prikaz
+                Kalendar
               </HeaderChip>
             </div>
 
