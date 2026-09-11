@@ -102,7 +102,6 @@ export default async function EmployeeSchedulePage({
 
         <section className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
           <h2 className="text-2xl font-semibold text-app-text">Postojeće posebne izmjene</h2>
-          <p className="mt-2 text-sm text-app-muted">Prikazuju se izmjene od prije 3 dana nadalje. Starije možeš otvoriti po potrebi.</p>
           <div className="mt-6">
             <OverrideList employeeId={data.employee.id} overrides={data.overrides} />
           </div>
