@@ -25,6 +25,7 @@ import {
 import { getDashboardOverviewStats } from "@/features/dashboard/overview-queries";
 import { getAuditLogs } from "@/features/audit/queries";
 import { getAppointmentsByDate } from "@/features/appointments/queries";
+import TodayAppointmentsPanel from "./today-appointments-panel";
 
 function actionLabel(action: string) {
   const labels: Record<string, string> = {
@@ -75,17 +76,6 @@ function getTodayLabel() {
     day: "numeric",
     month: "long",
   }).format(new Date());
-}
-
-function getServiceLabel(item: Awaited<ReturnType<typeof getAppointmentsByDate>>[number]) {
-  const multi = item.appointment_services
-    ?.slice()
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((service) => service.service?.name)
-    .filter(Boolean);
-
-  if (multi?.length) return multi.join(" + ");
-  return item.service?.name ?? "Usluga";
 }
 
 export default async function DashboardPage() {
@@ -146,66 +136,7 @@ export default async function DashboardPage() {
         </section>
 
         <div className={canViewAudit ? "grid gap-6 lg:grid-cols-2" : ""}>
-          <section className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-bold text-app-text">Danas</h2>
-                <p className="mt-1 text-sm text-app-muted">
-                  {activeToday.length} {activeToday.length === 1 ? "termin" : "termina"} u rasporedu.
-                </p>
-              </div>
-              <Link href="/dashboard/calendar/time-grid" className="inline-flex items-center gap-2 text-sm font-semibold text-app-accent">
-                Otvori kalendar <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {activeToday.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-app-soft bg-app-card-alt p-6 text-center">
-                  <p className="font-medium text-app-text">Danas nema aktivnih termina.</p>
-                  <Link href="/dashboard/appointments/new" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-app-accent">
-                    <Plus className="h-4 w-4" /> Dodaj termin
-                  </Link>
-                </div>
-              ) : (
-                activeToday.slice(0, 8).map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/dashboard/appointments/${item.id}/edit`}
-                    className="flex flex-col gap-3 rounded-2xl border border-app-soft bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div className="min-w-[74px] rounded-xl bg-app-card-alt px-3 py-2 text-center">
-                        <div className="text-base font-bold text-app-text">{item.start_time.slice(0, 5)}</div>
-                        <div className="text-xs text-app-muted">{item.end_time.slice(0, 5)}</div>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-app-text">{item.client_name}</p>
-                        <p className="truncate text-sm text-app-muted">{getServiceLabel(item)}</p>
-                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-app-muted">
-                          {item.employee ? <span>{item.employee.display_name}</span> : null}
-                          {item.room ? <span>{item.room.name}</span> : null}
-                        </div>
-                      </div>
-                    </div>
-                    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-                      item.status === "completed"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-blue-100 text-blue-700"
-                    }`}>
-                      {item.status === "completed" ? "Odrađeno" : "Zakazano"}
-                    </span>
-                  </Link>
-                ))
-              )}
-
-              {activeToday.length > 8 ? (
-                <Link href="/dashboard/calendar/time-grid" className="block rounded-xl bg-app-card-alt px-4 py-3 text-center text-sm font-semibold text-app-accent">
-                  Prikaži još {activeToday.length - 8} termina
-                </Link>
-              ) : null}
-            </div>
-          </section>
+          <TodayAppointmentsPanel appointments={activeToday} />
 
           {canViewAudit ? (
             <section className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
