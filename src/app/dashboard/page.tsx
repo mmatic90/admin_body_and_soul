@@ -178,7 +178,7 @@ export default async function DashboardPage() {
             <DashboardLinkCard href="/dashboard/calendar" title="Kalendar" description="Dnevni pregled termina." icon={Clock} />
             <DashboardLinkCard href="/dashboard/clients" title="Klijenti" description="Pregled klijenata i povijesti termina." icon={Users} />
             {canAccessScheduleManagement(permissions.role) ? <DashboardLinkCard href="/dashboard/schedule" title="Rasporedi" description="Upravljanje rasporedima zaposlenika." icon={UserCog} /> : null}
-            {canAccessReports(permissions.role) ? <DashboardLinkCard href="/dashboard/reports" title="Reports" description="Pregled termina, statusa i statistike." icon={BarChart3} /> : null}
+            {canAccessReports(permissions.role) ? <DashboardLinkCard href="/dashboard/reports" title="Izvještaji" description="Pregled termina, statusa i statistike." icon={BarChart3} /> : null}
             {canViewAudit ? <DashboardLinkCard href="/dashboard/settings" title="Postavke" description="Upravljanje uslugama, sobama i pravilima." icon={Settings} /> : null}
           </div>
         </section>
