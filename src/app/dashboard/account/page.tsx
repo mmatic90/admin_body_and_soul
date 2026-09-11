@@ -29,10 +29,7 @@ export default async function AccountPage() {
 
   return (
     <PageShell maxWidth="max-w-5xl">
-      <PageHeader
-        title="Moj račun"
-        description="Uredi prikazano ime, boju zaposlenika i lozinku."
-      />
+      <PageHeader title="Moj račun" />
 
       <PageSection title="Osnovni podaci" description={`Email za prijavu: ${email}`}>
         <AccountProfileForm
