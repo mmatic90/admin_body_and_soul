@@ -1,6 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 
+export type ReportPeriod =
+  | "current_month"
+  | "previous_month"
+  | "last_30_days";
+
 type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
+
+type AppointmentServiceRow = {
+  service: {
+    id: string;
+    name: string;
+  } | null;
+};
 
 type AppointmentRow = {
   id: string;
@@ -16,6 +28,7 @@ type AppointmentRow = {
     id: string;
     name: string;
   } | null;
+  appointment_services: AppointmentServiceRow[];
 };
 
 type OnlineBookingRow = {
@@ -29,37 +42,79 @@ function getSingleRelation<T>(value: T | T[] | null | undefined): T | null {
   return value ?? null;
 }
 
-function formatDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+function getZagrebDateValue(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zagreb",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
 
-  return `${year}-${month}-${day}`;
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
 }
 
-function startOfWeek(date: Date) {
-  const copy = new Date(date);
-  const day = copy.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  copy.setDate(copy.getDate() + diff);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
+function parseDateValue(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
-function endOfWeek(date: Date) {
-  const start = startOfWeek(date);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-  return end;
+function formatUtcDate(date: Date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
 }
 
-function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
+function addDays(value: string, days: number) {
+  const date = parseDateValue(value);
+  date.setUTCDate(date.getUTCDate() + days);
+  return formatUtcDate(date);
 }
 
-function endOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+function getPeriodRange(period: ReportPeriod) {
+  const today = getZagrebDateValue();
+  const todayDate = parseDateValue(today);
+  const year = todayDate.getUTCFullYear();
+  const month = todayDate.getUTCMonth();
+
+  if (period === "previous_month") {
+    const start = new Date(Date.UTC(year, month - 1, 1));
+    const end = new Date(Date.UTC(year, month, 0));
+
+    return {
+      start: formatUtcDate(start),
+      end: formatUtcDate(end),
+      label: "Prošli mjesec",
+    };
+  }
+
+  if (period === "last_30_days") {
+    return {
+      start: addDays(today, -29),
+      end: today,
+      label: "Zadnjih 30 dana",
+    };
+  }
+
+  return {
+    start: formatUtcDate(new Date(Date.UTC(year, month, 1))),
+    end: today,
+    label: "Ovaj mjesec",
+  };
+}
+
+function enumerateDates(start: string, end: string) {
+  const dates: string[] = [];
+  let current = start;
+
+  while (current <= end) {
+    dates.push(current);
+    current = addDays(current, 1);
+  }
+
+  return dates;
 }
 
 function safeRate(part: number, total: number) {
@@ -67,21 +122,18 @@ function safeRate(part: number, total: number) {
   return Math.round((part / total) * 100);
 }
 
-export async function getReportsDashboardData() {
+function getZagrebDateFromTimestamp(value: string) {
+  return getZagrebDateValue(new Date(value));
+}
+
+export async function getReportsDashboardData(
+  period: ReportPeriod = "current_month",
+) {
   const supabase = await createClient();
+  const range = getPeriodRange(period);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const todayStr = formatDate(today);
-  const weekStartStr = formatDate(startOfWeek(today));
-  const weekEndStr = formatDate(endOfWeek(today));
-  const monthStartStr = formatDate(startOfMonth(today));
-  const monthEndStr = formatDate(endOfMonth(today));
-
-  const last14Start = new Date(today);
-  last14Start.setDate(today.getDate() - 13);
-  const last14StartStr = formatDate(last14Start);
+  const onlineBufferStart = addDays(range.start, -1);
+  const onlineBufferEnd = addDays(range.end, 1);
 
   const [
     { data: appointmentData, error: appointmentError },
@@ -103,28 +155,34 @@ export async function getReportsDashboardData() {
         service:services (
           id,
           name
+        ),
+        appointment_services (
+          service:services (
+            id,
+            name
+          )
         )
       `,
       )
-      .gte("appointment_date", last14StartStr)
-      .lte("appointment_date", monthEndStr)
+      .gte("appointment_date", range.start)
+      .lte("appointment_date", range.end)
       .order("appointment_date", { ascending: true }),
 
     supabase
       .from("online_booking_requests")
       .select("id, status, created_at")
-      .gte("created_at", `${monthStartStr}T00:00:00`)
-      .lte("created_at", `${monthEndStr}T23:59:59`),
+      .gte("created_at", `${onlineBufferStart}T00:00:00Z`)
+      .lte("created_at", `${onlineBufferEnd}T23:59:59Z`),
   ]);
 
   if (appointmentError) {
     console.error(appointmentError);
-    throw new Error("Nije moguće dohvatiti reports podatke.");
+    throw new Error("Nije moguće dohvatiti podatke za izvještaje.");
   }
 
   if (onlineError) {
     console.error(onlineError);
-    throw new Error("Nije moguće dohvatiti online booking podatke.");
+    throw new Error("Nije moguće dohvatiti podatke online rezervacija.");
   }
 
   const appointments: AppointmentRow[] = (appointmentData ?? []).map(
@@ -150,51 +208,49 @@ export async function getReportsDashboardData() {
               name: String(service.name ?? ""),
             }
           : null,
+        appointment_services: Array.isArray(item.appointment_services)
+          ? item.appointment_services
+              .map((row: any) => {
+                const relatedService = getSingleRelation(row.service);
+
+                return relatedService
+                  ? {
+                      service: {
+                        id: String(relatedService.id ?? ""),
+                        name: String(relatedService.name ?? ""),
+                      },
+                    }
+                  : null;
+              })
+              .filter(Boolean)
+          : [],
       };
     },
   );
 
-  const onlineBookings = (onlineData ?? []) as OnlineBookingRow[];
-
-  const todayAppointments = appointments.filter(
-    (item) => item.appointment_date === todayStr,
-  );
-
-  const weekAppointments = appointments.filter(
-    (item) =>
-      item.appointment_date >= weekStartStr &&
-      item.appointment_date <= weekEndStr,
-  );
-
-  const monthAppointments = appointments.filter(
-    (item) =>
-      item.appointment_date >= monthStartStr &&
-      item.appointment_date <= monthEndStr,
+  const onlineBookings = ((onlineData ?? []) as OnlineBookingRow[]).filter(
+    (item) => {
+      const localDate = getZagrebDateFromTimestamp(item.created_at);
+      return localDate >= range.start && localDate <= range.end;
+    },
   );
 
   const statusCounts = {
-    scheduled: monthAppointments.filter((a) => a.status === "scheduled").length,
-    completed: monthAppointments.filter((a) => a.status === "completed").length,
-    cancelled: monthAppointments.filter((a) => a.status === "cancelled").length,
-    no_show: monthAppointments.filter((a) => a.status === "no_show").length,
+    scheduled: appointments.filter((a) => a.status === "scheduled").length,
+    completed: appointments.filter((a) => a.status === "completed").length,
+    cancelled: appointments.filter((a) => a.status === "cancelled").length,
+    no_show: appointments.filter((a) => a.status === "no_show").length,
   };
 
-  const totalMonthAppointments = monthAppointments.length;
-
-  const completionRate = safeRate(
-    statusCounts.completed,
-    totalMonthAppointments,
-  );
-
-  const noShowRate = safeRate(statusCounts.no_show, totalMonthAppointments);
+  const totalAppointments = appointments.length;
+  const completionRate = safeRate(statusCounts.completed, totalAppointments);
+  const noShowRate = safeRate(statusCounts.no_show, totalAppointments);
 
   const onlineCounts = {
     total: onlineBookings.length,
     pending: onlineBookings.filter((item) => item.status === "pending").length,
-    accepted: onlineBookings.filter((item) => item.status === "accepted")
-      .length,
-    rejected: onlineBookings.filter((item) => item.status === "rejected")
-      .length,
+    accepted: onlineBookings.filter((item) => item.status === "accepted").length,
+    rejected: onlineBookings.filter((item) => item.status === "rejected").length,
   };
 
   const onlineConversionRate = safeRate(
@@ -204,11 +260,10 @@ export async function getReportsDashboardData() {
 
   const employeeMap = new Map<string, { name: string; count: number }>();
 
-  for (const item of monthAppointments) {
+  for (const item of appointments) {
     if (!item.employee?.id) continue;
 
     const existing = employeeMap.get(item.employee.id);
-
     if (existing) {
       existing.count += 1;
     } else {
@@ -221,18 +276,28 @@ export async function getReportsDashboardData() {
 
   const serviceMap = new Map<string, { name: string; count: number }>();
 
-  for (const item of monthAppointments) {
-    if (!item.service?.id) continue;
+  for (const item of appointments) {
+    const services =
+      item.appointment_services.length > 0
+        ? item.appointment_services
+            .map((row) => row.service)
+            .filter(Boolean)
+        : item.service
+          ? [item.service]
+          : [];
 
-    const existing = serviceMap.get(item.service.id);
+    for (const service of services) {
+      if (!service?.id) continue;
 
-    if (existing) {
-      existing.count += 1;
-    } else {
-      serviceMap.set(item.service.id, {
-        name: item.service.name,
-        count: 1,
-      });
+      const existing = serviceMap.get(service.id);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        serviceMap.set(service.id, {
+          name: service.name,
+          count: 1,
+        });
+      }
     }
   }
 
@@ -244,43 +309,37 @@ export async function getReportsDashboardData() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
 
-  const last14Days = Array.from({ length: 14 }, (_, index) => {
-    const date = new Date(last14Start);
-    date.setDate(last14Start.getDate() + index);
-    const dateStr = formatDate(date);
-
+  const trend = enumerateDates(range.start, range.end).map((date) => {
     const dayAppointments = appointments.filter(
-      (a) => a.appointment_date === dateStr,
+      (appointment) => appointment.appointment_date === date,
     );
 
     return {
-      date: dateStr,
+      date,
       count: dayAppointments.length,
       completed: dayAppointments.filter((a) => a.status === "completed").length,
       no_show: dayAppointments.filter((a) => a.status === "no_show").length,
     };
   });
 
-  const busiestDays = [...last14Days]
+  const busiestDays = [...trend]
+    .filter((day) => day.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
   return {
     period: {
-      today: todayStr,
-      weekStart: weekStartStr,
-      weekEnd: weekEndStr,
-      monthStart: monthStartStr,
-      monthEnd: monthEndStr,
+      key: period,
+      label: range.label,
+      start: range.start,
+      end: range.end,
     },
     summary: {
-      today: todayAppointments.length,
-      week: weekAppointments.length,
-      month: totalMonthAppointments,
-      completedMonth: statusCounts.completed,
-      scheduledMonth: statusCounts.scheduled,
-      cancelledMonth: statusCounts.cancelled,
-      noShowMonth: statusCounts.no_show,
+      totalAppointments,
+      completedAppointments: statusCounts.completed,
+      scheduledAppointments: statusCounts.scheduled,
+      cancelledAppointments: statusCounts.cancelled,
+      noShowAppointments: statusCounts.no_show,
       completionRate,
       noShowRate,
       onlineConversionRate,
@@ -289,7 +348,7 @@ export async function getReportsDashboardData() {
     onlineCounts,
     topEmployees,
     topServices,
-    last14Days,
+    trend,
     busiestDays,
   };
 }
