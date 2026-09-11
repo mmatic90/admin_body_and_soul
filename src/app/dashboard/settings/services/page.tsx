@@ -39,9 +39,6 @@ export default async function SettingsServicesPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-app-text">Usluge</h1>
-              <p className="mt-2 text-app-muted">
-                Upravljaj uslugama, opisima, trajanjem, cijenama i dostupnošću.
-              </p>
             </div>
 
             <Link
@@ -74,9 +71,6 @@ export default async function SettingsServicesPage() {
         <div className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
           <div className="mb-4">
             <h2 className="text-xl font-semibold text-app-text">Popis usluga</h2>
-            <p className="mt-1 text-sm text-app-muted">
-              Zaglavlje tablice i gumbi za spremanje ostaju vidljivi dok pregledavaš dugačak popis.
-            </p>
           </div>
 
           {services.length === 0 ? (
