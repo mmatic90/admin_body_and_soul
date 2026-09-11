@@ -7,6 +7,10 @@ export type ReportPeriod =
 
 type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
 
+type RawReportAppointmentService = {
+  service?: unknown;
+};
+
 type AppointmentServiceRow = {
   service: {
     id: string;
@@ -209,7 +213,7 @@ export async function getReportsDashboardData(
             }
           : null,
         appointment_services: Array.isArray(item.appointment_services)
-          ? item.appointment_services
+          ? (item.appointment_services as RawReportAppointmentService[])
               .map((row) => {
                 const relatedService = getSingleRelation(row.service);
 
