@@ -30,7 +30,7 @@ export default async function EmployeeSchedulePage({
             </div>
 
             <Link href="/dashboard/schedule" className="inline-flex items-center justify-center rounded-xl border border-app-soft bg-white px-4 py-2 font-medium text-app-text transition hover:bg-app-bg">
-              Natrag na zaposlenike
+              Natrag na djelatnike
             </Link>
           </div>
         </div>
