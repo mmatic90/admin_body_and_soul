@@ -8,6 +8,11 @@ import { toast } from "sonner";
 import ConfirmActionDialog from "@/components/confirm-action-dialog";
 import { quickUpdateAppointmentStatusAction } from "@/features/appointments/actions";
 import type { TimeGridAppointment } from "@/features/calendar/time-grid-queries";
+import {
+  getAppointmentAccentClass,
+  getAppointmentCardClass,
+  getAppointmentStatusLabel,
+} from "@/features/appointments/status-ui";
 
 type Props = {
   appointment: TimeGridAppointment;
@@ -15,51 +20,6 @@ type Props = {
   height: number;
   isCurrent?: boolean;
 };
-
-function statusClasses(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "border-[#c7bcad] bg-[#ebe3d6]";
-    case "completed":
-      return "border-green-300 bg-green-50";
-    case "cancelled":
-      return "border-red-200 bg-red-50 opacity-90";
-    case "no_show":
-      return "border-amber-300 bg-amber-50";
-    default:
-      return "border-app-soft bg-white";
-  }
-}
-
-function statusAccent(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "bg-[#B0A695]";
-    case "completed":
-      return "bg-green-600";
-    case "cancelled":
-      return "bg-red-400";
-    case "no_show":
-      return "bg-amber-500";
-    default:
-      return "bg-app-muted";
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "Zakazan";
-    case "completed":
-      return "Odrađen";
-    case "cancelled":
-      return "Otkazan";
-    case "no_show":
-      return "No-show";
-    default:
-      return status;
-  }
-}
 
 export default function TimeGridAppointmentBlock({
   appointment,
@@ -91,13 +51,13 @@ export default function TimeGridAppointmentBlock({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`absolute left-2 right-2 overflow-hidden rounded-2xl border text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${statusClasses(
+        className={`absolute left-2 right-2 overflow-hidden rounded-2xl border text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${getAppointmentCardClass(
           appointment.status,
         )} ${isCurrent ? "ring-2 ring-app-accent ring-offset-2" : ""}`}
         style={{ top, height }}
       >
         <div className="flex h-full">
-          <div className={`w-1.5 shrink-0 ${statusAccent(appointment.status)}`} />
+          <div className={`w-1.5 shrink-0 ${getAppointmentAccentClass(appointment.status)}`} />
 
           <div className="min-w-0 flex-1 px-3 py-2.5">
             <div className="flex items-start justify-between gap-2">
@@ -111,7 +71,7 @@ export default function TimeGridAppointmentBlock({
                   </span>
                 ) : null}
                 <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-medium text-app-text">
-                  {statusLabel(appointment.status)}
+                  {getAppointmentStatusLabel(appointment.status)}
                 </span>
               </div>
             </div>
@@ -158,7 +118,7 @@ export default function TimeGridAppointmentBlock({
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Status</p>
-                <p className="mt-1 font-semibold text-app-text">{statusLabel(appointment.status)}</p>
+                <p className="mt-1 font-semibold text-app-text">{getAppointmentStatusLabel(appointment.status)}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Usluga</p>
