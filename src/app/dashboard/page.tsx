@@ -17,10 +17,15 @@ import {
   UserCog,
   Activity,
   ArrowRight,
+  Plus,
+  CalendarDays,
+  ClipboardCheck,
+  UserPlus,
 } from "lucide-react";
 import DashboardOverviewWidget from "@/components/dashboard-overview-widget";
 import { getDashboardOverviewStats } from "@/features/dashboard/overview-queries";
 import { getAuditLogs } from "@/features/audit/queries";
+import { getAppointmentsByDate } from "@/features/appointments/queries";
 
 function actionLabel(action: string) {
   const labels: Record<string, string> = {
@@ -52,36 +57,169 @@ function relativeTime(value: string) {
   return days === 1 ? "jučer" : `prije ${days} dana`;
 }
 
+function getZagrebDateValue() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zagreb",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+function getTodayLabel() {
+  return new Intl.DateTimeFormat("hr-HR", {
+    timeZone: "Europe/Zagreb",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date());
+}
+
+function getServiceLabel(item: Awaited<ReturnType<typeof getAppointmentsByDate>>[number]) {
+  const multi = item.appointment_services
+    ?.slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((service) => service.service?.name)
+    .filter(Boolean);
+
+  if (multi?.length) return multi.join(" + ");
+  return item.service?.name ?? "Usluga";
+}
+
 export default async function DashboardPage() {
   const permissions = await requireDashboardUser();
   const canViewAudit = canAccessSettings(permissions.role);
-  const [overdueAppointments, overviewStats, recentAudit] = await Promise.all([
+  const todayValue = getZagrebDateValue();
+
+  const [overdueAppointments, overviewStats, recentAudit, todayAppointments] = await Promise.all([
     getOverdueScheduledAppointments(),
     getDashboardOverviewStats(),
     canViewAudit ? getAuditLogs({ pageSize: 5 }) : Promise.resolve({ items: [], total: 0 }),
+    getAppointmentsByDate(todayValue),
   ]);
+
+  const activeToday = todayAppointments.filter(
+    (item) => item.status === "scheduled" || item.status === "completed",
+  );
 
   return (
     <main className="min-h-screen bg-app-bg p-4 md:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <OverdueAppointmentsPanel items={overdueAppointments} />
 
-        <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-          <h1 className="text-3xl font-bold text-app-text">Dashboard</h1>
-          <p className="mt-2 text-app-muted">
-            Body &amp; Soul by Elizabeth Dobrović - upravljanje terminima i klijentima.
-          </p>
-        </div>
+        <section className="overflow-hidden rounded-3xl border border-app-soft bg-app-card shadow-sm">
+          <div className="flex flex-col gap-6 p-6 md:p-8 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-app-accent">
+                {getTodayLabel()}
+              </p>
+              <h1 className="mt-2 text-3xl font-bold text-app-text md:text-4xl">
+                Dnevni pregled
+              </h1>
+              <p className="mt-2 max-w-2xl text-app-muted">
+                Najvažnije informacije i radnje za današnji dan na jednom mjestu.
+              </p>
+            </div>
 
-        <DashboardOverviewWidget
-          pendingOnlineCount={overviewStats.pendingOnlineCount}
-          todayOnlineCount={overviewStats.todayOnlineCount}
-          todayAppointmentsCount={overviewStats.todayAppointmentsCount}
-          tomorrowAppointmentsCount={overviewStats.tomorrowAppointmentsCount}
-          completedThisMonthCount={overviewStats.completedThisMonthCount}
-          noShowThisMonthCount={overviewStats.noShowThisMonthCount}
-          onlineConversionRate={overviewStats.onlineConversionRate}
-        />
+            <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:min-w-[430px]">
+              <Link href="/dashboard/appointments/new" className="inline-flex items-center justify-center gap-2 rounded-xl bg-app-accent px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90">
+                <Plus className="h-4 w-4" /> Novi termin
+              </Link>
+              <Link href="/dashboard/clients" className="inline-flex items-center justify-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-3 text-sm font-semibold text-app-text transition hover:bg-app-bg">
+                <UserPlus className="h-4 w-4" /> Klijenti
+              </Link>
+              <Link href="/dashboard/online-bookings" className="inline-flex items-center justify-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-3 text-sm font-semibold text-app-text transition hover:bg-app-bg">
+                <ClipboardCheck className="h-4 w-4" /> Online zahtjevi
+                {overviewStats.pendingOnlineCount > 0 ? (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
+                    {overviewStats.pendingOnlineCount}
+                  </span>
+                ) : null}
+              </Link>
+              <Link href="/dashboard/calendar/time-grid" className="inline-flex items-center justify-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-3 text-sm font-semibold text-app-text transition hover:bg-app-bg">
+                <CalendarDays className="h-4 w-4" /> Današnji raspored
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+          <section className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-app-text">Danas</h2>
+                <p className="mt-1 text-sm text-app-muted">
+                  {activeToday.length} {activeToday.length === 1 ? "termin" : "termina"} u rasporedu.
+                </p>
+              </div>
+              <Link href="/dashboard/calendar/time-grid" className="inline-flex items-center gap-2 text-sm font-semibold text-app-accent">
+                Otvori kalendar <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {activeToday.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-app-soft bg-app-card-alt p-6 text-center">
+                  <p className="font-medium text-app-text">Danas nema aktivnih termina.</p>
+                  <Link href="/dashboard/appointments/new" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-app-accent">
+                    <Plus className="h-4 w-4" /> Dodaj termin
+                  </Link>
+                </div>
+              ) : (
+                activeToday.slice(0, 8).map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/dashboard/appointments/${item.id}`}
+                    className="flex flex-col gap-3 rounded-2xl border border-app-soft bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="min-w-[74px] rounded-xl bg-app-card-alt px-3 py-2 text-center">
+                        <div className="text-base font-bold text-app-text">{item.start_time.slice(0, 5)}</div>
+                        <div className="text-xs text-app-muted">{item.end_time.slice(0, 5)}</div>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-app-text">{item.client_name}</p>
+                        <p className="truncate text-sm text-app-muted">{getServiceLabel(item)}</p>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-app-muted">
+                          {item.employee ? <span>{item.employee.display_name}</span> : null}
+                          {item.room ? <span>{item.room.name}</span> : null}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+                      item.status === "completed"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}>
+                      {item.status === "completed" ? "Odrađeno" : "Zakazano"}
+                    </span>
+                  </Link>
+                ))
+              )}
+
+              {activeToday.length > 8 ? (
+                <Link href="/dashboard/calendar/time-grid" className="block rounded-xl bg-app-card-alt px-4 py-3 text-center text-sm font-semibold text-app-accent">
+                  Prikaži još {activeToday.length - 8} termina
+                </Link>
+              ) : null}
+            </div>
+          </section>
+
+          <div className="space-y-6">
+            <DashboardOverviewWidget
+              pendingOnlineCount={overviewStats.pendingOnlineCount}
+              todayOnlineCount={overviewStats.todayOnlineCount}
+              todayAppointmentsCount={overviewStats.todayAppointmentsCount}
+              tomorrowAppointmentsCount={overviewStats.tomorrowAppointmentsCount}
+              completedThisMonthCount={overviewStats.completedThisMonthCount}
+              noShowThisMonthCount={overviewStats.noShowThisMonthCount}
+              onlineConversionRate={overviewStats.onlineConversionRate}
+            />
+          </div>
+        </div>
 
         {canViewAudit ? (
           <section className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
@@ -103,15 +241,20 @@ export default async function DashboardPage() {
           </section>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <DashboardLinkCard href="/dashboard/appointments" title="Termini" description="Pregled i upravljanje terminima." icon={Calendar} />
-          <DashboardLinkCard href="/dashboard/calendar" title="Kalendar" description="Dnevni pregled termina." icon={Clock} />
-          <DashboardLinkCard href="/dashboard/calendar/time-grid" title="Time-grid kalendar" description="Dnevni raspored po vremenskoj osi." icon={Clock} />
-          <DashboardLinkCard href="/dashboard/clients" title="Klijenti" description="Pregled klijenata i povijesti termina." icon={Users} />
-          {canAccessScheduleManagement(permissions.role) ? <DashboardLinkCard href="/dashboard/schedule" title="Rasporedi" description="Upravljanje rasporedima zaposlenika." icon={UserCog} /> : null}
-          {canAccessReports(permissions.role) ? <DashboardLinkCard href="/dashboard/reports" title="Reports" description="Pregled termina, statusa i statistike." icon={BarChart3} /> : null}
-          {canViewAudit ? <DashboardLinkCard href="/dashboard/settings" title="Postavke" description="Upravljanje uslugama, sobama i pravilima." icon={Settings} /> : null}
-        </div>
+        <section>
+          <div className="mb-3">
+            <h2 className="text-lg font-bold text-app-text">Ostalo</h2>
+            <p className="text-sm text-app-muted">Rjeđe korištene funkcije i administracija.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <DashboardLinkCard href="/dashboard/appointments" title="Termini" description="Pregled i upravljanje terminima." icon={Calendar} />
+            <DashboardLinkCard href="/dashboard/calendar" title="Kalendar" description="Dnevni pregled termina." icon={Clock} />
+            <DashboardLinkCard href="/dashboard/clients" title="Klijenti" description="Pregled klijenata i povijesti termina." icon={Users} />
+            {canAccessScheduleManagement(permissions.role) ? <DashboardLinkCard href="/dashboard/schedule" title="Rasporedi" description="Upravljanje rasporedima zaposlenika." icon={UserCog} /> : null}
+            {canAccessReports(permissions.role) ? <DashboardLinkCard href="/dashboard/reports" title="Reports" description="Pregled termina, statusa i statistike." icon={BarChart3} /> : null}
+            {canViewAudit ? <DashboardLinkCard href="/dashboard/settings" title="Postavke" description="Upravljanje uslugama, sobama i pravilima." icon={Settings} /> : null}
+          </div>
+        </section>
       </div>
     </main>
   );
