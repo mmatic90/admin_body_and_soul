@@ -50,7 +50,7 @@ export default function AccountProfileForm({
         <input
           name="display_name"
           defaultValue={initialDisplayName}
-          className="w-full rounded-xl border border-app-soft bg-white px-4 py-3 text-app-text outline-none"
+          className="w-full rounded-xl border border-app-soft bg-white px-4 py-3 text-app-text outline-none transition focus:border-app-accent focus:ring-2 focus:ring-app-accent/10"
           required
         />
       </div>
@@ -64,7 +64,7 @@ export default function AccountProfileForm({
           type="color"
           defaultValue={initialColorHex || "#999999"}
           disabled={!canEditColor}
-          className="h-12 w-full rounded-xl border border-app-soft bg-white px-2 py-2 outline-none disabled:bg-app-card-alt"
+          className="h-12 w-full rounded-xl border border-app-soft bg-white px-2 py-2 outline-none transition focus:border-app-accent focus:ring-2 focus:ring-app-accent/10 disabled:bg-app-card-alt"
         />
       </div>
 
