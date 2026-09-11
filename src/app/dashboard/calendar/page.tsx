@@ -20,17 +20,6 @@ type SearchParams = Promise<{
   room?: string;
 }>;
 
-function formatDateTitle(value: string) {
-  const date = new Date(`${value}T00:00:00`);
-
-  return new Intl.DateTimeFormat("hr-HR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
-}
-
 function ViewChip({
   href,
   active,
