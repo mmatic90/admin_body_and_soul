@@ -7,8 +7,16 @@ export type ReportPeriod =
 
 type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
 
+type RawReportServiceRelation = {
+  id?: unknown;
+  name?: unknown;
+};
+
 type RawReportAppointmentService = {
-  service?: unknown;
+  service?:
+    | RawReportServiceRelation
+    | RawReportServiceRelation[]
+    | null;
 };
 
 type AppointmentServiceRow = {
