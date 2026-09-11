@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getAppointmentFormData } from "@/features/appointments/queries";
+import { getAppointmentById, getAppointmentFormData } from "@/features/appointments/queries";
 import { getTodayLocalDate } from "@/lib/utils";
 import NewAppointmentForm from "./new-appointment-form";
 import { getClientOptions } from "@/features/clients/queries";
 
 type SearchParams = Promise<{
   date?: string;
+  repeat?: string;
 }>;
 
 export default async function NewAppointmentPage({
@@ -33,6 +34,41 @@ export default async function NewAppointmentPage({
 
   const resolvedSearchParams = await searchParams;
   const defaultDate = resolvedSearchParams.date || getTodayLocalDate();
+  const repeatSource = resolvedSearchParams.repeat
+    ? await getAppointmentById(resolvedSearchParams.repeat)
+    : null;
+
+  const repeatServices = repeatSource
+    ? repeatSource.appointment_services?.length
+      ? repeatSource.appointment_services
+          .slice()
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((item) => ({
+            service_id: item.service_id,
+            duration_minutes: item.duration_minutes,
+          }))
+      : repeatSource.service_id
+        ? [{
+            service_id: repeatSource.service_id,
+            duration_minutes: repeatSource.duration_minutes,
+          }]
+        : []
+    : [];
+
+  const repeatPrefill = repeatSource
+    ? {
+        sourceAppointmentId: repeatSource.id,
+        clientId: repeatSource.client_id ?? "",
+        clientName: repeatSource.client_name,
+        clientPhone: repeatSource.client_phone ?? "",
+        clientEmail: repeatSource.client_email ?? "",
+        clientNote: repeatSource.client_note ?? "",
+        internalNote: repeatSource.internal_note ?? "",
+        employeeId: repeatSource.employee_id,
+        roomId: repeatSource.room_id,
+        services: repeatServices,
+      }
+    : undefined;
 
   return (
     <main className="min-h-screen bg-app-bg p-6 md:p-8">
@@ -64,6 +100,7 @@ export default async function NewAppointmentPage({
             employeeServices={employeeServices}
             clients={clients}
             defaultDate={defaultDate}
+            repeatPrefill={repeatPrefill}
           />
         </div>
       </div>
