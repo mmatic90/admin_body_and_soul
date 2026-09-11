@@ -29,7 +29,7 @@ export default function OverrideForm({ employeeId }: Props) {
   return (
     <form action={formAction} className="space-y-5">
       <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-800">
-        Override zamjenjuje uobičajeni raspored samo za odabrani datum ili raspon. Kod posebnog radnog vremena možeš postaviti i pauzu.
+        Posebna izmjena zamjenjuje redovni raspored samo za odabrani datum ili raspon. Kod posebnog radnog vremena možeš postaviti i pauzu.
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
