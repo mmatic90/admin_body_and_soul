@@ -158,12 +158,6 @@ export default async function CalendarWeekPage({
               <h1 className="text-2xl font-bold text-app-text md:text-3xl">
                 Tjedni kalendar
               </h1>
-              <p className="mt-2 text-sm text-app-muted md:text-base">
-                Pregled termina od ponedjeljka do subote:{" "}
-                <span className="font-medium text-app-text">
-                  {formatWeekTitle(weekStart, weekEnd)}
-                </span>
-              </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
