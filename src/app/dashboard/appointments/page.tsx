@@ -2,10 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAppointmentsByDate } from "@/features/appointments/queries";
-import {
-  formatDateLabel,
-  getTodayLocalDate,
-} from "@/lib/utils";
+import { getTodayLocalDate } from "@/lib/utils";
 import DateQueryPicker from "@/components/date-query-picker";
 import EmptyStateCard from "@/components/empty-state-card";
 import AppointmentsListView from "./appointments-list-view";
@@ -61,9 +58,6 @@ export default async function AppointmentsPage({
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-app-text">Termini</h1>
-              <p className="mt-2 text-app-muted">
-                Pregled termina za {formatDateLabel(selectedDate)}
-              </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
