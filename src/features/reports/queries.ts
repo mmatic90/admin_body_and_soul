@@ -234,7 +234,9 @@ export async function getReportsDashboardData(
                     }
                   : null;
               })
-              .filter(Boolean)
+              .filter(
+                (row): row is AppointmentServiceRow => row !== null,
+              )
           : [],
       };
     },
