@@ -141,7 +141,7 @@ async function getCalendarAppointments(
           }
         : null,
       appointment_services: Array.isArray(item.appointment_services)
-        ? item.appointment_services.map((serviceItem: any) => {
+        ? item.appointment_services.map((serviceItem) => {
             const serviceRelation = getSingleRelation(serviceItem.service);
 
             return {
