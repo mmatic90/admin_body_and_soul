@@ -8,6 +8,10 @@ import { toast } from "sonner";
 import ConfirmActionDialog from "@/components/confirm-action-dialog";
 import { quickUpdateAppointmentStatusAction } from "@/features/appointments/actions";
 import type { AppointmentListItem } from "@/features/appointments/types";
+import {
+  getAppointmentStatusBadgeClass,
+  getAppointmentStatusLabel,
+} from "@/features/appointments/status-ui";
 
 type Props = {
   appointments: AppointmentListItem[];
@@ -127,12 +131,12 @@ export default function TodayAppointmentsPanel({ appointments, currentMinutes }:
                         </div>
                       </div>
                     </div>
-                    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-                      item.status === "completed"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-blue-100 text-blue-700"
-                    }`}>
-                      {item.status === "completed" ? "Odrađeno" : "Zakazano"}
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${getAppointmentStatusBadgeClass(
+                        item.status,
+                      )}`}
+                    >
+                      {getAppointmentStatusLabel(item.status)}
                     </span>
                   </button>
                 ))}
