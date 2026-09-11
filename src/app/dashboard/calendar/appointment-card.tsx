@@ -7,6 +7,10 @@ import { CheckCircle2, Pencil, Phone, X, XCircle, UserX } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmActionDialog from "@/components/confirm-action-dialog";
 import { quickUpdateAppointmentStatusAction } from "@/features/appointments/actions";
+import {
+  getAppointmentCardClass,
+  getAppointmentStatusLabel,
+} from "@/features/appointments/status-ui";
 
 type Appointment = {
   id: string;
@@ -35,32 +39,6 @@ type Props = {
   serviceLabel: string;
   isCurrent?: boolean;
 };
-
-function statusClasses(status: Appointment["status"]) {
-  switch (status) {
-    case "scheduled":
-      return "border-[#c7bcad] bg-[#ebe3d6]";
-    case "completed":
-      return "border-green-300 bg-green-50";
-    case "cancelled":
-      return "border-red-200 bg-red-50";
-    case "no_show":
-      return "border-amber-300 bg-amber-50";
-  }
-}
-
-function statusLabel(status: Appointment["status"]) {
-  switch (status) {
-    case "scheduled":
-      return "Zakazan";
-    case "completed":
-      return "Odrađen";
-    case "cancelled":
-      return "Otkazan";
-    case "no_show":
-      return "No-show";
-  }
-}
 
 export default function CalendarAppointmentCard({
   appointment,
@@ -92,7 +70,7 @@ export default function CalendarAppointmentCard({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`group relative block w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${statusClasses(
+        className={`group relative block w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${getAppointmentCardClass(
           appointment.status,
         )} ${isCurrent ? "ring-2 ring-app-accent ring-offset-2" : ""}`}
       >
@@ -113,7 +91,7 @@ export default function CalendarAppointmentCard({
               </span>
             ) : null}
             <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-app-text">
-              {statusLabel(appointment.status)}
+              {getAppointmentStatusLabel(appointment.status)}
             </span>
           </div>
         </div>
@@ -177,7 +155,7 @@ export default function CalendarAppointmentCard({
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Status</p>
-                <p className="mt-1 font-semibold text-app-text">{statusLabel(appointment.status)}</p>
+                <p className="mt-1 font-semibold text-app-text">{getAppointmentStatusLabel(appointment.status)}</p>
               </div>
               <div className="sm:col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Usluga</p>
