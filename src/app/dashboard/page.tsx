@@ -22,7 +22,6 @@ import {
   ClipboardCheck,
   UserPlus,
 } from "lucide-react";
-import DashboardOverviewWidget from "@/components/dashboard-overview-widget";
 import { getDashboardOverviewStats } from "@/features/dashboard/overview-queries";
 import { getAuditLogs } from "@/features/audit/queries";
 import { getAppointmentsByDate } from "@/features/appointments/queries";
@@ -146,7 +145,7 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <div>
           <section className="rounded-2xl border border-app-soft bg-app-card p-5 shadow-sm md:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
