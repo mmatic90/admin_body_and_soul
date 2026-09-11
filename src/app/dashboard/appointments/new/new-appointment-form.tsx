@@ -20,6 +20,13 @@ import { calculateTotalDuration } from "@/features/appointments/calculate-total-
 import type { AppointmentServiceInput } from "@/features/appointments/types";
 import { addMinutesToTimeString } from "@/features/appointments/time-helpers";
 
+type ClientPrefill = {
+  clientId: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+};
+
 type RepeatPrefill = {
   sourceAppointmentId: string;
   clientId: string;
@@ -42,6 +49,7 @@ type Props = {
   clients: ClientComboboxItem[];
   defaultDate: string;
   repeatPrefill?: RepeatPrefill;
+  clientPrefill?: ClientPrefill;
 };
 
 function parseServicesJson(raw: string): AppointmentServiceInput[] {
@@ -84,16 +92,17 @@ export default function NewAppointmentForm({
   clients,
   defaultDate,
   repeatPrefill,
+  clientPrefill,
 }: Props) {
   const initialState: ActionState = {
     error: "",
     values: {
       appointment_date: defaultDate || getTodayLocalDate(),
       start_time: "",
-      client_id: repeatPrefill?.clientId ?? "",
-      client_name: repeatPrefill?.clientName ?? "",
-      client_phone: repeatPrefill?.clientPhone ?? "",
-      client_email: repeatPrefill?.clientEmail ?? "",
+      client_id: repeatPrefill?.clientId ?? clientPrefill?.clientId ?? "",
+      client_name: repeatPrefill?.clientName ?? clientPrefill?.clientName ?? "",
+      client_phone: repeatPrefill?.clientPhone ?? clientPrefill?.clientPhone ?? "",
+      client_email: repeatPrefill?.clientEmail ?? clientPrefill?.clientEmail ?? "",
       service_id: repeatPrefill?.services[0]?.service_id ?? "",
       employee_id: repeatPrefill?.employeeId ?? "",
       room_id: repeatPrefill?.roomId ?? "",
