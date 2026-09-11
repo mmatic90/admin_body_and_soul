@@ -156,11 +156,11 @@ export default async function OnlineBookingDetailsPage({
                 dateLabel={formatDateHr(request.requested_date)}
                 time={String(request.start_time).slice(0, 5)}
                 durationMinutes={defaultDuration}
-                employees={options.employees.map((employee: any) => ({
+                employees={options.employees.map((employee) => ({
                   id: employee.id,
                   name: employee.display_name,
                 }))}
-                rooms={options.rooms.map((room: any) => ({
+                rooms={options.rooms.map((room) => ({
                   id: room.id,
                   name: room.name,
                 }))}
