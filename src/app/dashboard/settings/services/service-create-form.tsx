@@ -23,7 +23,7 @@ export default function ServiceCreateForm() {
     }
   }, [state, router]);
 
-  const inputClass = "rounded-xl border border-neutral-300 px-4 py-3 outline-none";
+  const inputClass = "rounded-xl border border-app-soft bg-white px-4 py-3 text-app-text outline-none transition placeholder:text-app-muted focus:border-app-accent";
 
   return (
     <form action={formAction} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -32,8 +32,8 @@ export default function ServiceCreateForm() {
       <input name="duration_minutes" type="number" min={1} placeholder="Trajanje (min)" className={inputClass} required />
       <input name="display_order" type="number" min={1} step={1} placeholder="Redoslijed u kategoriji" className={inputClass} />
 
-      <textarea name="description" placeholder="Opis usluge (HR)" rows={3} className="rounded-xl border border-neutral-300 px-4 py-3 outline-none md:col-span-2" />
-      <textarea name="description_en" placeholder="Opis usluge (EN)" rows={3} className="rounded-xl border border-neutral-300 px-4 py-3 outline-none md:col-span-2" />
+      <textarea name="description" placeholder="Opis usluge (HR)" rows={3} className={`${inputClass} md:col-span-2`} />
+      <textarea name="description_en" placeholder="Opis usluge (EN)" rows={3} className={`${inputClass} md:col-span-2`} />
 
       <input name="service_group" placeholder="Kategorija (HR)" className={inputClass} />
       <input name="service_group_en" placeholder="Kategorija (EN)" className={inputClass} />
@@ -43,7 +43,7 @@ export default function ServiceCreateForm() {
       <input name="price_max_eur" type="number" min={0} step="0.01" placeholder="Max cijena (€)" className={inputClass} />
 
       <div className="md:col-span-2 xl:col-span-4 flex justify-end">
-        <button type="submit" disabled={pending} className="rounded-xl bg-black px-5 py-3 font-medium text-white disabled:opacity-50">
+        <button type="submit" disabled={pending} className="rounded-xl bg-app-accent px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-50">
           {pending ? "Dodavanje..." : "Dodaj uslugu"}
         </button>
       </div>
