@@ -93,6 +93,11 @@ export default async function ClientDetailsPage({
     notFound();
   }
 
+  const repeatCandidate =
+    client.pastAppointments.find((appointment) => appointment.status === "completed") ??
+    client.pastAppointments[0] ??
+    null;
+
   return (
     <main className="min-h-screen bg-app-bg p-4 md:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -117,7 +122,15 @@ export default async function ClientDetailsPage({
               </p>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {repeatCandidate ? (
+                <Link
+                  href={`/dashboard/appointments/new?repeat=${repeatCandidate.id}`}
+                  className="rounded-xl bg-app-accent px-4 py-2 font-medium text-white transition hover:opacity-90"
+                >
+                  Ponovi zadnji termin
+                </Link>
+              ) : null}
               <Link
                 href={`/dashboard/clients/${client.id}/edit`}
                 className="rounded-xl border border-app-soft bg-white px-4 py-2 font-medium text-app-text transition hover:bg-app-bg"
@@ -307,6 +320,7 @@ export default async function ClientDetailsPage({
                   <th className="px-4 py-3 font-semibold">Zaposlenik</th>
                   <th className="px-4 py-3 font-semibold">Soba</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Akcije</th>
                 </tr>
               </thead>
 
@@ -338,6 +352,14 @@ export default async function ClientDetailsPage({
                     </td>
                     <td className="px-4 py-4 text-app-muted">
                       {appointment.status}
+                    </td>
+                    <td className="px-4 py-4">
+                      <Link
+                        href={`/dashboard/appointments/new?repeat=${appointment.id}`}
+                        className="inline-flex rounded-lg border border-app-soft bg-white px-3 py-2 text-xs font-semibold text-app-text transition hover:bg-app-bg"
+                      >
+                        Ponovi
+                      </Link>
                     </td>
                   </tr>
                 ))}
