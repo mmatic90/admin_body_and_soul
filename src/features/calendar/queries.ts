@@ -54,12 +54,21 @@ export type CalendarEmployeeGroup = {
   appointments: CalendarAppointmentItem[];
 };
 
+type RawCalendarServiceRelation = {
+  id?: unknown;
+  name?: unknown;
+  service_group?: unknown;
+};
+
 type RawCalendarServiceItem = {
   id?: unknown;
   service_id?: unknown;
   duration_minutes?: unknown;
   sort_order?: unknown;
-  service?: unknown;
+  service?:
+    | RawCalendarServiceRelation
+    | RawCalendarServiceRelation[]
+    | null;
 };
 
 function getSingleRelation<T>(value: T | T[] | null | undefined): T | null {
