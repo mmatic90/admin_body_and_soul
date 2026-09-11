@@ -5,14 +5,13 @@ import {
   getCalendarDayDataByEmployees,
   getCalendarDayDataByRooms,
 } from "@/features/calendar/queries";
-import { formatTime, getTodayLocalDate } from "@/lib/utils";
+import { getTodayLocalDate } from "@/lib/utils";
 import DateQueryPicker from "@/components/date-query-picker";
-import AppointmentMiniDetails from "@/components/appointment-mini-details";
 import { getWorkStatusClasses } from "@/features/schedule/status-helpers";
 import AutoSubmitSelect from "@/components/auto-submit-select";
-import AppointmentStatusActions from "@/components/appointment-status-actions";
 import EmptyStateCard from "@/components/empty-state-card";
 import { formatAppointmentServicesLabel } from "@/features/appointments/format-appointment-services";
+import CalendarAppointmentCard from "./appointment-card";
 
 type SearchParams = Promise<{
   date?: string;
@@ -30,36 +29,6 @@ function formatDateTitle(value: string) {
     month: "2-digit",
     year: "numeric",
   }).format(date);
-}
-
-function statusClasses(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "border-[#c7bcad] bg-[#ebe3d6]";
-    case "completed":
-      return "border-[#8a7d6f] bg-[#d8cec1]";
-    case "cancelled":
-      return "border-[#d8cdc0] bg-[#f2ece5]";
-    case "no_show":
-      return "border-[#6a655f] bg-[#ded7cf]";
-    default:
-      return "border-app-soft bg-white";
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "Zakazan";
-    case "completed":
-      return "Odrađen";
-    case "cancelled":
-      return "Otkazan";
-    case "no_show":
-      return "Nije došao";
-    default:
-      return status;
-  }
 }
 
 function ViewChip({
@@ -85,108 +54,48 @@ function ViewChip({
   );
 }
 
-function CalendarCard({
-  appointment,
-}: {
+function getZagrebNow() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zagreb",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return {
+    date: `${map.year}-${map.month}-${map.day}`,
+    minutes: Number(map.hour) * 60 + Number(map.minute),
+  };
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.slice(0, 5).split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function isAppointmentCurrent(
   appointment: {
-    id: string;
     start_time: string;
     end_time: string;
-    duration_minutes: number;
     status: "scheduled" | "completed" | "cancelled" | "no_show";
-    client_name: string;
-    client_phone: string | null;
-    service: { name: string; service_group: string | null } | null;
-    appointment_services?: {
-      id: string;
-      duration_minutes: number;
-      sort_order: number;
-      service: {
-        id: string;
-        name: string;
-        service_group: string | null;
-      } | null;
-    }[];
-    metaLabel?: string;
-  };
-}) {
-  return (
-    <Link
-      href={`/dashboard/appointments/${appointment.id}/edit`}
-      className={`group relative block rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md ${statusClasses(
-        appointment.status,
-      )}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-app-text">
-            {formatTime(appointment.start_time)} -{" "}
-            {formatTime(appointment.end_time)}
-          </div>
-          <div className="mt-1 text-sm text-app-muted">
-            {appointment.duration_minutes} min
-          </div>
-        </div>
+  },
+  selectedDate: string,
+  nowDate: string,
+  currentMinutes: number,
+) {
+  if (selectedDate !== nowDate || appointment.status !== "scheduled") {
+    return false;
+  }
 
-        <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-app-text">
-          {statusLabel(appointment.status)}
-        </span>
-      </div>
+  const start = timeToMinutes(appointment.start_time);
+  const end = timeToMinutes(appointment.end_time);
 
-      <div className="mt-4">
-        <div className="font-medium text-app-text">
-          {appointment.client_name}
-        </div>
-
-        <div className="mt-1 text-sm text-app-text">
-          {formatAppointmentServicesLabel(
-            appointment.appointment_services
-              ?.slice()
-              .sort((a, b) => a.sort_order - b.sort_order),
-          )}
-        </div>
-
-        {appointment.service?.service_group ? (
-          <div className="mt-1 text-xs text-app-muted">
-            {appointment.service.service_group}
-          </div>
-        ) : null}
-      </div>
-
-      {appointment.metaLabel ? (
-        <div className="mt-3 text-sm text-app-muted">
-          {appointment.metaLabel}
-        </div>
-      ) : null}
-
-      {appointment.client_phone ? (
-        <div className="mt-2 text-xs text-app-muted">
-          {appointment.client_phone}
-        </div>
-      ) : null}
-
-      <div className="mt-3">
-        <AppointmentStatusActions
-          appointmentId={appointment.id}
-          currentStatus={appointment.status}
-          compact
-        />
-      </div>
-
-      <AppointmentMiniDetails
-        clientName={appointment.client_name}
-        serviceName={formatAppointmentServicesLabel(
-          appointment.appointment_services
-            ?.slice()
-            .sort((a, b) => a.sort_order - b.sort_order),
-        )}
-        startTime={formatTime(appointment.start_time)}
-        endTime={formatTime(appointment.end_time)}
-        durationMinutes={appointment.duration_minutes}
-        extraLine={appointment.metaLabel}
-      />
-    </Link>
-  );
+  return start <= currentMinutes && currentMinutes < end;
 }
 
 export default async function CalendarPage({
@@ -222,6 +131,7 @@ export default async function CalendarPage({
 
   const selectedEmployeeId = resolvedSearchParams.employee || "";
   const selectedRoomId = resolvedSearchParams.room || "";
+  const zagrebNow = getZagrebNow();
 
   const mobileEmployeeGroups =
     selectedView === "employees" && selectedEmployeeId
@@ -349,7 +259,7 @@ export default async function CalendarPage({
                   ) : (
                     <div className="space-y-3">
                       {group.appointments.map((appointment) => (
-                        <CalendarCard
+                        <CalendarAppointmentCard
                           key={appointment.id}
                           appointment={{
                             ...appointment,
@@ -357,6 +267,17 @@ export default async function CalendarPage({
                               ? `Zaposlenik: ${appointment.employee.display_name}`
                               : "Nepoznati zaposlenik",
                           }}
+                          serviceLabel={formatAppointmentServicesLabel(
+                            appointment.appointment_services
+                              ?.slice()
+                              .sort((a, b) => a.sort_order - b.sort_order),
+                          )}
+                          isCurrent={isAppointmentCurrent(
+                            appointment,
+                            selectedDate,
+                            zagrebNow.date,
+                            zagrebNow.minutes,
+                          )}
                         />
                       ))}
                     </div>
@@ -387,7 +308,7 @@ export default async function CalendarPage({
                   ) : (
                     <div className="space-y-3">
                       {group.appointments.map((appointment) => (
-                        <CalendarCard
+                        <CalendarAppointmentCard
                           key={appointment.id}
                           appointment={{
                             ...appointment,
@@ -395,6 +316,17 @@ export default async function CalendarPage({
                               ? `Zaposlenik: ${appointment.employee.display_name}`
                               : "Nepoznati zaposlenik",
                           }}
+                          serviceLabel={formatAppointmentServicesLabel(
+                            appointment.appointment_services
+                              ?.slice()
+                              .sort((a, b) => a.sort_order - b.sort_order),
+                          )}
+                          isCurrent={isAppointmentCurrent(
+                            appointment,
+                            selectedDate,
+                            zagrebNow.date,
+                            zagrebNow.minutes,
+                          )}
                         />
                       ))}
                     </div>
@@ -444,7 +376,7 @@ export default async function CalendarPage({
                   ) : (
                     <div className="space-y-3">
                       {group.appointments.map((appointment) => (
-                        <CalendarCard
+                        <CalendarAppointmentCard
                           key={appointment.id}
                           appointment={{
                             ...appointment,
@@ -452,6 +384,17 @@ export default async function CalendarPage({
                               ? `Soba: ${appointment.room.name}`
                               : "Nepoznata soba",
                           }}
+                          serviceLabel={formatAppointmentServicesLabel(
+                            appointment.appointment_services
+                              ?.slice()
+                              .sort((a, b) => a.sort_order - b.sort_order),
+                          )}
+                          isCurrent={isAppointmentCurrent(
+                            appointment,
+                            selectedDate,
+                            zagrebNow.date,
+                            zagrebNow.minutes,
+                          )}
                         />
                       ))}
                     </div>
@@ -498,7 +441,7 @@ export default async function CalendarPage({
                   ) : (
                     <div className="space-y-3">
                       {group.appointments.map((appointment) => (
-                        <CalendarCard
+                        <CalendarAppointmentCard
                           key={appointment.id}
                           appointment={{
                             ...appointment,
@@ -506,6 +449,17 @@ export default async function CalendarPage({
                               ? `Soba: ${appointment.room.name}`
                               : "Nepoznata soba",
                           }}
+                          serviceLabel={formatAppointmentServicesLabel(
+                            appointment.appointment_services
+                              ?.slice()
+                              .sort((a, b) => a.sort_order - b.sort_order),
+                          )}
+                          isCurrent={isAppointmentCurrent(
+                            appointment,
+                            selectedDate,
+                            zagrebNow.date,
+                            zagrebNow.minutes,
+                          )}
                         />
                       ))}
                     </div>
