@@ -11,10 +11,7 @@ export default async function SchedulePage() {
 
   return (
     <PageShell maxWidth="max-w-4xl">
-      <PageHeader
-        title="Rasporedi zaposlenika"
-        description="Upravljanje redovnim radnim vremenom i posebnim izmjenama po datumima."
-      />
+      <PageHeader title="Rasporedi zaposlenika" />
 
         <div className="grid gap-4">
           {employees.map((employee) => (
