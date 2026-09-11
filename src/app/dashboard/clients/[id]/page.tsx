@@ -13,6 +13,10 @@ import { getClientById } from "@/features/clients/queries";
 import { formatTime } from "@/lib/utils";
 import EmptyStateCard from "@/components/empty-state-card";
 import { formatAppointmentServicesLabel } from "@/features/appointments/format-appointment-services";
+import {
+  getAppointmentStatusBadgeClass,
+  getAppointmentStatusLabel,
+} from "@/features/appointments/status-ui";
 
 type Params = Promise<{
   id: string;
@@ -60,34 +64,6 @@ function segmentClasses(segment: string) {
       return "border-red-200 bg-red-50 text-red-700";
     default:
       return "border-app-soft bg-app-bg text-app-text";
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "scheduled":
-      return "Zakazano";
-    case "completed":
-      return "Odrađeno";
-    case "cancelled":
-      return "Otkazano";
-    case "no_show":
-      return "No-show";
-    default:
-      return status;
-  }
-}
-
-function statusClasses(status: string) {
-  switch (status) {
-    case "completed":
-      return "bg-green-100 text-green-700";
-    case "cancelled":
-      return "bg-red-100 text-red-700";
-    case "no_show":
-      return "bg-amber-100 text-amber-800";
-    default:
-      return "bg-blue-100 text-blue-700";
   }
 }
 
@@ -456,8 +432,8 @@ export default async function ClientDetailsPage({
                       {appointment.employee?.display_name || "-"}
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses(appointment.status)}`}>
-                        {statusLabel(appointment.status)}
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAppointmentStatusBadgeClass(appointment.status)}`}>
+                        {getAppointmentStatusLabel(appointment.status)}
                       </span>
                     </td>
                     <td className="px-4 py-4">
