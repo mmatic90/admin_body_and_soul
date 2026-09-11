@@ -180,10 +180,6 @@ function TrendBars({
           );
         })}
       </div>
-
-      <p className="mt-2 text-xs text-app-muted">
-        Broj iznad stupca prikazuje ukupan broj termina tog dana.
-      </p>
     </div>
   );
 }
