@@ -121,9 +121,6 @@ export default async function DashboardPage() {
               <h1 className="mt-2 text-3xl font-bold text-app-text md:text-4xl">
                 Dnevni pregled
               </h1>
-              <p className="mt-2 max-w-2xl text-app-muted">
-                Najvažnije informacije i radnje za današnji dan na jednom mjestu.
-              </p>
             </div>
 
             <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:min-w-[430px]">
