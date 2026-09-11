@@ -14,6 +14,17 @@ export type CalendarAppointmentItem = {
     name: string;
     service_group: string | null;
   } | null;
+  appointment_services?: {
+    id: string;
+    service_id: string;
+    duration_minutes: number;
+    sort_order: number;
+    service: {
+      id: string;
+      name: string;
+      service_group: string | null;
+    } | null;
+  }[];
   room: {
     id: string;
     name: string;
@@ -129,6 +140,27 @@ async function getCalendarAppointments(
               : null,
           }
         : null,
+      appointment_services: Array.isArray(item.appointment_services)
+        ? item.appointment_services.map((serviceItem: any) => {
+            const serviceRelation = getSingleRelation(serviceItem.service);
+
+            return {
+              id: String(serviceItem.id ?? ""),
+              service_id: String(serviceItem.service_id ?? ""),
+              duration_minutes: Number(serviceItem.duration_minutes ?? 0),
+              sort_order: Number(serviceItem.sort_order ?? 0),
+              service: serviceRelation
+                ? {
+                    id: String(serviceRelation.id ?? ""),
+                    name: String(serviceRelation.name ?? ""),
+                    service_group: serviceRelation.service_group
+                      ? String(serviceRelation.service_group)
+                      : null,
+                  }
+                : null,
+            };
+          })
+        : [],
       room: room
         ? {
             id: String(room.id ?? ""),
