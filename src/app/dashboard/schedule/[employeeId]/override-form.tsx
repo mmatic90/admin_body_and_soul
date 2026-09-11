@@ -98,7 +98,7 @@ export default function OverrideForm({ employeeId }: Props) {
 
       <div className="flex justify-end">
         <button type="submit" disabled={pending} className="rounded-xl bg-app-accent px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-50">
-          {pending ? "Spremanje..." : "Dodaj override raspon"}
+          {pending ? "Spremanje..." : "Dodaj posebnu izmjenu"}
         </button>
       </div>
     </form>
