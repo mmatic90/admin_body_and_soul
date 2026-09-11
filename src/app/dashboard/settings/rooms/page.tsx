@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getRooms } from "@/features/settings/queries";
+import { getRooms, getServiceRoomMappingData } from "@/features/settings/queries";
 import RoomsTable from "./rooms-table";
 import RoomCreateForm from "./room-create-form";
 import { requireAdminForSettings } from "@/lib/page-guards";
@@ -8,7 +8,17 @@ import EmptyStateCard from "@/components/empty-state-card";
 export default async function SettingsPage() {
   await requireAdminForSettings();
 
-  const rooms = await getRooms();
+  const [rooms, mappingData] = await Promise.all([
+    getRooms(),
+    getServiceRoomMappingData(),
+  ]);
+
+  const serviceCounts = Object.fromEntries(
+    rooms.map((room) => [
+      room.id,
+      mappingData.mappings.filter((item) => item.room_id === room.id).length,
+    ]),
+  );
 
   return (
     <main className="min-h-screen bg-app-bg p-4 md:p-6 lg:p-8">
@@ -52,7 +62,7 @@ export default async function SettingsPage() {
               description="Dodaj prvu sobu kako bi se mogla koristiti u rasporedu i terminima."
             />
           ) : (
-            <RoomsTable rooms={rooms} />
+            <RoomsTable rooms={rooms} serviceCounts={serviceCounts} />
           )}
         </div>
       </div>
