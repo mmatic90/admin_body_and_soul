@@ -147,25 +147,43 @@ function TrendBars({
   const max = Math.max(...items.map((item) => item.count), 1);
 
   return (
-    <div className="mt-4 space-y-3">
-      {items.map((item) => {
-        const percent = Math.round((item.count / max) * 100);
+    <div className="mt-4 overflow-x-auto pb-2">
+      <div
+        className="grid min-w-max items-end gap-2 rounded-2xl border border-app-soft bg-white px-4 pb-3 pt-5"
+        style={{
+          gridTemplateColumns: `repeat(${items.length}, minmax(34px, 1fr))`,
+          minWidth: `${Math.max(items.length * 42, 720)}px`,
+        }}
+      >
+        {items.map((item) => {
+          const heightPercent = item.count > 0 ? Math.max((item.count / max) * 100, 8) : 0;
+          const [, month, day] = item.date.split("-");
 
-        return (
-          <div key={item.date} className="rounded-xl border border-app-soft bg-white px-4 py-3">
-            <div className="flex items-center justify-between gap-4">
-              <div className="text-sm font-medium text-app-text">{formatDateHR(item.date)}</div>
-              <div className="text-sm font-semibold text-app-text">{item.count}</div>
+          return (
+            <div key={item.date} className="flex min-w-0 flex-col items-center">
+              <div className="mb-2 text-xs font-semibold text-app-text">
+                {item.count}
+              </div>
+
+              <div className="flex h-44 w-full items-end justify-center border-b border-app-soft">
+                <div
+                  className="w-5 rounded-t-md bg-app-accent transition-all"
+                  style={{ height: `${heightPercent}%` }}
+                  title={`${formatDateHR(item.date)}: ${item.count} termina · Odrađeno ${item.completed} · No-show ${item.no_show}`}
+                />
+              </div>
+
+              <div className="mt-2 whitespace-nowrap text-[10px] text-app-muted">
+                {day}.{month}.
+              </div>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-app-card-alt">
-              <div className="h-full rounded-full bg-app-accent" style={{ width: `${percent}%` }} />
-            </div>
-            <div className="mt-2 text-xs text-app-muted">
-              Odrađeno: {item.completed} · No-show: {item.no_show}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      <p className="mt-2 text-xs text-app-muted">
+        Broj iznad stupca prikazuje ukupan broj termina tog dana.
+      </p>
     </div>
   );
 }
