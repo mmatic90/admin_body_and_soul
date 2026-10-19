@@ -1028,6 +1028,7 @@ export async function bulkUpdateEmployeesAction(
     display_name: string;
     color_hex: string | null;
     is_active: boolean;
+    is_online_bookable: boolean;
   }>,
 ) {
   try {
@@ -1120,6 +1121,7 @@ export async function bulkUpdateEmployeesAction(
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard/calendar/time-grid");
     revalidatePath("/dashboard/schedule");
+    revalidatePath("/booking");
 
     return {
       ok: true,
@@ -1478,6 +1480,7 @@ export async function createEmployeeAction(
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard/calendar/time-grid");
     revalidatePath("/dashboard/schedule");
+    revalidatePath("/booking");
 
     return {
       error: "",
