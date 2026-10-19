@@ -37,6 +37,7 @@ export type EmployeeItem = {
   phone: string | null;
   color_hex: string | null;
   is_active: boolean;
+  is_online_bookable: boolean;
 };
 
 export type SalonWorkingHourItem = {
