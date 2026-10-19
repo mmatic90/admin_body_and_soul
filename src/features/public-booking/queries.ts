@@ -59,6 +59,7 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
       .from("employees")
       .select("id, display_name")
       .eq("is_active", true)
+      .eq("is_online_bookable", true)
       .order("display_name", { ascending: true }),
   ]);
 
