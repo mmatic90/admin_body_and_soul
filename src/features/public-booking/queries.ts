@@ -84,8 +84,10 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
     }
   }
 
-  return (services ?? []).map((service) => ({
-    ...service,
-    therapists: therapistsByService.get(service.id) ?? [],
-  })) as PublicBookingService[];
+  return (services ?? [])
+    .map((service) => ({
+      ...service,
+      therapists: therapistsByService.get(service.id) ?? [],
+    }))
+    .filter((service) => service.therapists.length > 0) as PublicBookingService[];
 }
