@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       intervalMinutes: 30,
       maxSuggestions: 999,
       employeeId: employeeId || undefined,
+      onlineOnly: true,
     });
 
     return NextResponse.json({
