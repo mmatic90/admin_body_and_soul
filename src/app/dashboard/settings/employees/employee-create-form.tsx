@@ -17,6 +17,7 @@ const initialState: EmployeeActionState = {
     phone: "",
     color_hex: "",
     password: "",
+    is_online_bookable: true,
   },
 };
 
@@ -81,6 +82,23 @@ export default function EmployeeCreateForm() {
           </span>
         </div>
       </div>
+
+      <label className="flex items-start gap-3 rounded-xl border border-app-soft bg-app-card-alt px-4 py-3">
+        <input
+          name="is_online_bookable"
+          type="checkbox"
+          defaultChecked={state.values.is_online_bookable}
+          className="mt-1 h-4 w-4"
+        />
+        <span>
+          <span className="block text-sm font-medium text-app-text">
+            Dostupan za online rezervacije
+          </span>
+          <span className="mt-1 block text-xs text-app-muted">
+            Ako je isključeno, djelatnik ostaje dostupan za ručno unesene termine, ali se ne prikazuje klijentima u online rezervacijama.
+          </span>
+        </span>
+      </label>
 
       <p className="text-sm text-neutral-600">
         Kod kreiranja djelatnika automatski se stvara korisnički račun. Početna
