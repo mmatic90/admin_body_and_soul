@@ -76,7 +76,7 @@ export async function getEmployees(): Promise<EmployeeItem[]> {
 
   const { data, error } = await supabase
     .from("employees")
-    .select("id, profile_id, display_name, email, phone, color_hex, is_active")
+    .select("id, profile_id, display_name, email, phone, color_hex, is_active, is_online_bookable")
     .order("display_name", { ascending: true });
 
   if (error) {
