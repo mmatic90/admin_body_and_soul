@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  archiveCurrentPriceList,
+  markPriceListPublished,
+} from "@/lib/price-list";
 import type { SettingsActionState } from "./actions";
 
 async function requireUser() {
@@ -37,27 +41,19 @@ function parseDisplayOrder(value: unknown) {
   return parsed;
 }
 
-function validatePrices(args: {
-  fixed: number | null;
-  min: number | null;
-  max: number | null;
-}) {
-  const { fixed, min, max } = args;
-  if ([fixed, min, max].some((value) => Number.isNaN(value))) {
-    return "Cijene moraju biti pozitivni brojevi.";
-  }
-  const hasMin = min !== null;
-  const hasMax = max !== null;
-  if (hasMin !== hasMax) {
-    return "Za raspon cijena potrebno je unijeti i minimalnu i maksimalnu cijenu.";
-  }
-  if (min !== null && max !== null && max < min) {
-    return "Maksimalna cijena ne može biti manja od minimalne.";
-  }
-  if (fixed !== null && min !== null && max !== null) {
-    return "Odaberi ili fiksnu cijenu ili raspon cijena, ne oboje.";
-  }
+function validatePrice(value: number | null, label: string) {
+  if (value === null) return `${label} je obavezna.`;
+  if (Number.isNaN(value) || value < 0) return `${label} mora biti pozitivan broj.`;
   return null;
+}
+
+function getTodayInCroatia() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zagreb",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 export async function createServiceWithPricingAction(
@@ -71,13 +67,12 @@ export async function createServiceWithPricingAction(
     const description = normalizeNullableText(formData.get("description"));
     const descriptionEn = normalizeNullableText(formData.get("description_en"));
     const durationMinutes = Number(formData.get("duration_minutes") ?? 0);
-    const fixed = parseEuroInput(formData.get("price_eur"));
-    const min = parseEuroInput(formData.get("price_min_eur"));
-    const max = parseEuroInput(formData.get("price_max_eur"));
+    const price = parseEuroInput(formData.get("price_eur"));
     const displayOrder = parseDisplayOrder(formData.get("display_order"));
     const serviceGroup = normalizeNullableText(formData.get("service_group"));
     const serviceGroupEn = normalizeNullableText(formData.get("service_group_en"));
     const priorityRoom = normalizeNullableText(formData.get("priority_room"));
+    const specialSaleName = normalizeNullableText(formData.get("special_sale_name"));
 
     if (!name) return { error: "Naziv usluge je obavezan.", success: "" };
     if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
@@ -86,8 +81,11 @@ export async function createServiceWithPricingAction(
     if (Number.isNaN(displayOrder)) {
       return { error: "Redoslijed mora biti cijeli broj veći od 0.", success: "" };
     }
-    const priceError = validatePrices({ fixed, min, max });
+
+    const priceError = validatePrice(price, "Cijena");
     if (priceError) return { error: priceError, success: "" };
+
+    await archiveCurrentPriceList();
 
     const payload = {
       name,
@@ -95,9 +93,10 @@ export async function createServiceWithPricingAction(
       description,
       description_en: descriptionEn,
       duration_minutes: durationMinutes,
-      price_cents: fixed,
-      price_min_cents: min,
-      price_max_cents: max,
+      price_cents: price,
+      base_price_cents: price,
+      base_price_reference_date: getTodayInCroatia(),
+      special_sale_name: specialSaleName,
       display_order: displayOrder,
       service_group: serviceGroup,
       service_group_en: serviceGroupEn,
@@ -111,7 +110,10 @@ export async function createServiceWithPricingAction(
       .insert(payload)
       .select("id")
       .single();
+
     if (error) return { error: error.message, success: "" };
+
+    await markPriceListPublished();
 
     await writeAuditLog({
       action: "service_created",
@@ -125,6 +127,9 @@ export async function createServiceWithPricingAction(
     revalidatePath("/dashboard/settings/services");
     revalidatePath("/");
     revalidatePath("/booking");
+    revalidatePath("/cjenik");
+    revalidatePath("/cjenik/aktualni.csv");
+
     return { error: "", success: "Usluga je dodana." };
   } catch (error) {
     return {
@@ -143,8 +148,9 @@ export async function bulkUpdateServicesWithPricingAction(
     description_en: string;
     duration_minutes: number;
     price_cents: number | null;
-    price_min_cents: number | null;
-    price_max_cents: number | null;
+    base_price_cents: number | null;
+    base_price_reference_date: string | null;
+    special_sale_name: string;
     display_order: number | null;
     service_group: string | null;
     service_group_en: string;
@@ -157,26 +163,49 @@ export async function bulkUpdateServicesWithPricingAction(
     const supabase = await requireUser();
 
     for (const item of items) {
-      if (!item.name.trim()) return { ok: false, message: "Svaka usluga mora imati naziv." };
+      if (!item.name.trim()) {
+        return { ok: false, message: "Svaka usluga mora imati naziv." };
+      }
       if (!Number.isFinite(item.duration_minutes) || item.duration_minutes <= 0) {
         return { ok: false, message: "Trajanje svake usluge mora biti veće od 0." };
       }
-      if (item.display_order !== null && (!Number.isInteger(item.display_order) || item.display_order < 1)) {
-        return { ok: false, message: `${item.name}: redoslijed mora biti cijeli broj veći od 0.` };
+      if (
+        item.display_order !== null &&
+        (!Number.isInteger(item.display_order) || item.display_order < 1)
+      ) {
+        return {
+          ok: false,
+          message: `${item.name}: redoslijed mora biti cijeli broj veći od 0.`,
+        };
       }
-      const priceError = validatePrices({
-        fixed: item.price_cents,
-        min: item.price_min_cents,
-        max: item.price_max_cents,
-      });
-      if (priceError) return { ok: false, message: `${item.name}: ${priceError}` };
+
+      const currentError = validatePrice(item.price_cents, "Aktualna cijena");
+      if (currentError) {
+        return { ok: false, message: `${item.name}: ${currentError}` };
+      }
+
+      const baseError = validatePrice(item.base_price_cents, "Bazna cijena");
+      if (baseError) {
+        return { ok: false, message: `${item.name}: ${baseError}` };
+      }
+
+      if (!item.base_price_reference_date) {
+        return {
+          ok: false,
+          message: `${item.name}: odaberi datum na koji se bazna cijena odnosi.`,
+        };
+      }
     }
 
     const ids = items.map((item) => item.id);
-    const { data: beforeItems } = await supabase
+    const { data: beforeItems, error: beforeError } = await supabase
       .from("services")
       .select("*")
       .in("id", ids);
+
+    if (beforeError) {
+      return { ok: false, message: beforeError.message };
+    }
 
     const payload = items.map((item) => ({
       id: item.id,
@@ -186,8 +215,9 @@ export async function bulkUpdateServicesWithPricingAction(
       description_en: item.description_en.trim() || null,
       duration_minutes: item.duration_minutes,
       price_cents: item.price_cents,
-      price_min_cents: item.price_min_cents,
-      price_max_cents: item.price_max_cents,
+      base_price_cents: item.base_price_cents,
+      base_price_reference_date: item.base_price_reference_date,
+      special_sale_name: item.special_sale_name.trim() || null,
       display_order: item.display_order,
       service_group: item.service_group?.trim() || null,
       service_group_en: item.service_group_en.trim() || null,
@@ -196,10 +226,36 @@ export async function bulkUpdateServicesWithPricingAction(
       is_online_bookable: Boolean(item.is_online_bookable),
     }));
 
+    const priceListFields = [
+      "name",
+      "price_cents",
+      "base_price_cents",
+      "special_sale_name",
+      "is_active",
+    ] as const;
+
+    const hasPriceListChanges = payload.some((item) => {
+      const before = (beforeItems ?? []).find((row) => row.id === item.id);
+      if (!before) return true;
+
+      return priceListFields.some(
+        (field) => (before as Record<string, unknown>)[field] !== item[field],
+      );
+    });
+
+    if (hasPriceListChanges) {
+      await archiveCurrentPriceList();
+    }
+
     const { error } = await supabase
       .from("services")
       .upsert(payload, { onConflict: "id" });
+
     if (error) return { ok: false, message: error.message };
+
+    if (hasPriceListChanges) {
+      await markPriceListPublished();
+    }
 
     await writeAuditLog({
       action: "services_bulk_updated",
@@ -212,11 +268,17 @@ export async function bulkUpdateServicesWithPricingAction(
     revalidatePath("/dashboard/settings/services");
     revalidatePath("/");
     revalidatePath("/booking");
+    revalidatePath("/cjenik");
+    revalidatePath("/cjenik/aktualni.csv");
+
     return { ok: true, message: "Izmjene usluga su spremljene." };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Došlo je do greške pri spremanju.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Došlo je do greške pri spremanju.",
     };
   }
 }
