@@ -13,8 +13,6 @@ export type PublicBookingService = {
   description_en: string | null;
   duration_minutes: number;
   price_cents: number | null;
-  price_min_cents: number | null;
-  price_max_cents: number | null;
   display_order: number | null;
   service_group: string | null;
   service_group_en: string | null;
@@ -40,8 +38,6 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
           description_en,
           duration_minutes,
           price_cents,
-          price_min_cents,
-          price_max_cents,
           display_order,
           service_group,
           service_group_en
@@ -59,6 +55,7 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
       .from("employees")
       .select("id, display_name")
       .eq("is_active", true)
+      .eq("is_online_bookable", true)
       .order("display_name", { ascending: true }),
   ]);
 
@@ -83,8 +80,10 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
     }
   }
 
-  return (services ?? []).map((service) => ({
-    ...service,
-    therapists: therapistsByService.get(service.id) ?? [],
-  })) as PublicBookingService[];
+  return (services ?? [])
+    .map((service) => ({
+      ...service,
+      therapists: therapistsByService.get(service.id) ?? [],
+    }))
+    .filter((service) => service.therapists.length > 0) as PublicBookingService[];
 }

@@ -16,14 +16,21 @@ export type OverdueAppointmentItem = {
   } | null;
 };
 
+function getZagrebDateValue(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zagreb",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
 export async function getOverdueScheduledAppointments() {
   const supabase = await createClient();
-
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  const todayStr = `${year}-${month}-${day}`;
+  const todayStr = getZagrebDateValue();
 
   const { data, error } = await supabase
     .from("appointments")
@@ -46,15 +53,15 @@ export async function getOverdueScheduledAppointments() {
     )
     .eq("status", "scheduled")
     .lte("appointment_date", todayStr)
-    .order("appointment_date", { ascending: true })
-    .order("end_time", { ascending: true });
+    .order("appointment_date", { ascending: false })
+    .order("end_time", { ascending: false });
 
   if (error) {
     console.error(error);
     throw new Error("Nije moguće dohvatiti overdue termine.");
   }
 
-  const now = Date.now();
+  const now = new Date();
 
   const normalized: OverdueAppointmentItem[] = (data ?? []).map((item: any) => {
     const service = Array.isArray(item.service)
@@ -90,6 +97,6 @@ export async function getOverdueScheduledAppointments() {
     const end = new Date(
       `${item.appointment_date}T${item.end_time.slice(0, 5)}:00`,
     );
-    return end.getTime() < now;
+    return end.getTime() < now.getTime();
   });
 }

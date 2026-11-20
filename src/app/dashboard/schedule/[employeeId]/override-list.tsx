@@ -56,7 +56,7 @@ export default function OverrideList({ employeeId, overrides }: Props) {
     : recentOverrides;
 
   if (overrides.length === 0) {
-    return <p className="text-app-muted">Nema overrideova.</p>;
+    return <p className="text-app-muted">Nema posebnih izmjena.</p>;
   }
 
   function handleDelete() {
@@ -68,7 +68,7 @@ export default function OverrideList({ employeeId, overrides }: Props) {
         router.refresh();
       } catch (error) {
         console.error(error);
-        alert("Greška pri brisanju overridea.");
+        alert("Greška pri brisanju posebne izmjene.");
       }
     });
   }
@@ -79,8 +79,8 @@ export default function OverrideList({ employeeId, overrides }: Props) {
         <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-app-soft bg-app-bg/40 px-4 py-3">
           <div className="text-sm text-app-muted">
             {showPrevious
-              ? `Prikazani su i stariji overrideovi (${previousOverrides.length}).`
-              : `${previousOverrides.length} starijih overrideova je skriveno radi preglednosti.`}
+              ? `Prikazane su i starije posebne izmjene (${previousOverrides.length}).`
+              : `${previousOverrides.length} starijih posebnih izmjena je skriveno radi preglednosti.`}
           </div>
           <button
             type="button"
@@ -94,7 +94,7 @@ export default function OverrideList({ employeeId, overrides }: Props) {
 
       {visibleOverrides.length === 0 ? (
         <div className="rounded-xl border border-app-soft bg-app-bg/40 px-4 py-5 text-sm text-app-muted">
-          Nema overrideova u posljednja 3 dana niti u budućnosti.
+          Nema posebnih izmjena u posljednja 3 dana niti u budućnosti.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-app-soft">
@@ -102,7 +102,7 @@ export default function OverrideList({ employeeId, overrides }: Props) {
             <thead className="bg-app-table-head">
               <tr className="text-left text-sm text-app-muted">
                 <th className="px-4 py-3 font-semibold">Datum</th>
-                <th className="px-4 py-3 font-semibold">Tip</th>
+                <th className="px-4 py-3 font-semibold">Vrsta</th>
                 <th className="px-4 py-3 font-semibold">Vrijeme</th>
                 <th className="px-4 py-3 font-semibold">Pauza</th>
                 <th className="px-4 py-3 font-semibold">Napomena</th>
@@ -139,8 +139,8 @@ export default function OverrideList({ employeeId, overrides }: Props) {
 
       <ConfirmActionDialog
         open={Boolean(selectedOverride)}
-        title="Obrisati override?"
-        description={selectedOverride ? `Override za ${formatDate(selectedOverride.override_date)} bit će trajno obrisan. Nakon toga će ponovno vrijediti default raspored za taj datum.` : ""}
+        title="Obrisati posebnu izmjenu?"
+        description={selectedOverride ? `Posebna izmjena za ${formatDate(selectedOverride.override_date)} bit će trajno obrisan. Nakon toga će ponovno vrijediti redovni raspored za taj datum.` : ""}
         confirmLabel="Da, obriši"
         pending={pending}
         onCancel={() => setSelectedOverride(null)}

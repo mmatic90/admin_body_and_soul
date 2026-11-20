@@ -15,6 +15,24 @@ type OverrideRow = {
   override_type: OverrideType;
 };
 
+type EmployeeRow = {
+  id: string;
+  display_name: string;
+};
+
+function overrideReason(type: OverrideType) {
+  switch (type) {
+    case "day_off":
+      return "slobodan dan";
+    case "vacation":
+      return "godišnji odmor";
+    case "sick_leave":
+      return "bolovanje";
+    case "custom_hours":
+      return "poseban raspored";
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date");
@@ -44,7 +62,11 @@ export async function GET(request: Request) {
     { data: defaultSchedules, error: defaultSchedulesError },
     { data: overrides, error: overridesError },
   ] = await Promise.all([
-    supabase.from("employees").select("id").eq("is_active", true),
+    supabase
+      .from("employees")
+      .select("id, display_name")
+      .eq("is_active", true)
+      .order("display_name"),
     supabase
       .from("employee_default_schedule")
       .select("employee_id, day_of_week, is_working")
@@ -68,23 +90,47 @@ export async function GET(request: Request) {
     );
   }
 
-  const employeeIds = (employees ?? []).map((e) => e.id);
+  const employeeRows = (employees ?? []) as EmployeeRow[];
   const defaultRows = (defaultSchedules ?? []) as DefaultScheduleRow[];
   const overrideRows = (overrides ?? []) as OverrideRow[];
 
-  const workingEmployeeIds = employeeIds.filter((employeeId) => {
-    const override = overrideRows.find((row) => row.employee_id === employeeId);
+  const workingEmployeeIds: string[] = [];
+  const employeeAvailability = employeeRows.map((employee) => {
+    const override = overrideRows.find(
+      (row) => row.employee_id === employee.id,
+    );
 
     if (override) {
-      return override.override_type === "custom_hours";
+      const isWorking = override.override_type === "custom_hours";
+      if (isWorking) workingEmployeeIds.push(employee.id);
+
+      return {
+        id: employee.id,
+        display_name: employee.display_name,
+        is_working: isWorking,
+        reason: isWorking
+          ? "Radi po posebnom rasporedu."
+          : `Ne radi: ${overrideReason(override.override_type)}.`,
+      };
     }
 
     const defaultSchedule = defaultRows.find(
-      (row) => row.employee_id === employeeId,
+      (row) => row.employee_id === employee.id,
     );
+    const isWorking = defaultSchedule?.is_working === true;
+    if (isWorking) workingEmployeeIds.push(employee.id);
 
-    return defaultSchedule?.is_working === true;
+    return {
+      id: employee.id,
+      display_name: employee.display_name,
+      is_working: isWorking,
+      reason: isWorking
+        ? "Radi prema redovnom rasporedu."
+        : defaultSchedule
+          ? "Ne radi taj dan prema redovnom rasporedu."
+          : "Za taj dan nema postavljen radni raspored.",
+    };
   });
 
-  return NextResponse.json({ workingEmployeeIds });
+  return NextResponse.json({ workingEmployeeIds, employeeAvailability });
 }

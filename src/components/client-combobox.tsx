@@ -9,6 +9,11 @@ export type ClientComboboxItem = {
   email: string | null;
   note: string | null;
   internal_note: string | null;
+  appointments_count?: number;
+  no_show_count?: number;
+  cancelled_count?: number;
+  no_show_rate?: number;
+  cancellation_rate?: number;
 };
 
 type Props = {

@@ -16,27 +16,24 @@ export default async function SettingsServiceEquipmentPage() {
   const activeEquipment = equipment.filter((item) => item.is_active);
 
   return (
-    <main className="min-h-screen p-4 md:p-6 lg:p-8">
+    <main className="min-h-screen bg-app-bg p-4 md:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="rounded-2xl bg-white p-6 shadow-md">
+        <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold">Usluge i oprema</h1>
-              <p className="mt-2 text-neutral-600">
-                Odredi koja je oprema potrebna za pojedinu uslugu.
-              </p>
             </div>
 
             <Link
               href="/dashboard/settings"
-              className="rounded-xl border border-neutral-300 px-4 py-2 font-medium"
+              className="rounded-xl border border-app-soft bg-white px-4 py-2 font-medium text-app-text transition hover:bg-app-bg"
             >
               Natrag
             </Link>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow-md">
+        <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
           {activeServices.length === 0 || activeEquipment.length === 0 ? (
             <EmptyStateCard
               title="Mapiranje trenutno nije dostupno"

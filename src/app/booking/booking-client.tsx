@@ -18,8 +18,6 @@ type Service = {
   description_en: string | null;
   duration_minutes: number;
   price_cents: number | null;
-  price_min_cents: number | null;
-  price_max_cents: number | null;
   service_group: string | null;
   service_group_en: string | null;
   therapists: Therapist[];
@@ -147,11 +145,7 @@ function formatMoney(cents: number) {
 }
 
 function formatServicePrice(service: Service) {
-  if (service.price_min_cents != null && service.price_max_cents != null) {
-    return `${formatMoney(service.price_min_cents)} – ${formatMoney(service.price_max_cents)}`;
-  }
-  if (service.price_cents != null) return formatMoney(service.price_cents);
-  return null;
+  return service.price_cents != null ? formatMoney(service.price_cents) : null;
 }
 
 function formatDateInputValue(date: unknown) {

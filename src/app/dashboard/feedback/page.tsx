@@ -46,10 +46,10 @@ export default async function FeedbackPage() {
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-app-accent">Developer tools</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-app-accent">Alati za razvoj</p>
           <h1 className="mt-2 text-3xl font-bold text-app-text">Feedback</h1>
           <p className="mt-2 text-sm text-app-muted">
-            Klikni na bilo koji red ili na gumb Otvori za pregled screenshota, promjenu statusa i uređivanje internog komentara.
+            Klikni na bilo koji red ili na gumb Otvori za pregled snimki zaslona, promjenu statusa i uređivanje internog komentara.
           </p>
         </div>
         <FeedbackCleanupControls candidateCount={stats.cleanupCandidates} />
@@ -64,12 +64,12 @@ export default async function FeedbackPage() {
         <div className="rounded-3xl border border-app-soft bg-app-card p-5 shadow-sm">
           <ImageIcon className="h-5 w-5 text-app-accent" />
           <p className="mt-4 text-2xl font-bold text-app-text">{stats.screenshots}</p>
-          <p className="mt-1 text-sm text-app-muted">Screenshotova</p>
+          <p className="mt-1 text-sm text-app-muted">Snimki zaslona</p>
         </div>
         <div className="rounded-3xl border border-app-soft bg-app-card p-5 shadow-sm">
           <Database className="h-5 w-5 text-app-accent" />
           <p className="mt-4 text-2xl font-bold text-app-text">{formatBytes(stats.screenshotBytes)}</p>
-          <p className="mt-1 text-sm text-app-muted">Zauzeće screenshota</p>
+          <p className="mt-1 text-sm text-app-muted">Zauzeće snimki zaslona</p>
         </div>
         <div className="rounded-3xl border border-app-soft bg-app-card p-5 shadow-sm">
           <Trash2 className="h-5 w-5 text-app-accent" />
@@ -79,7 +79,7 @@ export default async function FeedbackPage() {
       </div>
 
       <div className="mb-6 rounded-2xl border border-app-soft bg-app-card-alt px-5 py-4 text-sm text-app-muted">
-        Automatska pravila čuvanja: riješene prijave 90 dana, odbijene prijave 30 dana. Gumb za čišćenje odmah uklanja prijave koje su prekoračile taj rok i njihove screenshotove.
+        Automatska pravila čuvanja: riješene prijave 90 dana, odbijene prijave 30 dana. Gumb za čišćenje odmah uklanja prijave koje su prekoračile taj rok i njihove snimke zaslona.
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-app-soft bg-app-card shadow-sm">

@@ -1,10 +1,22 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import {
+  CalendarPlus,
+  Mail,
+  Pencil,
+  Phone,
+  Repeat2,
+  UserRound,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getClientById } from "@/features/clients/queries";
 import { formatTime } from "@/lib/utils";
 import EmptyStateCard from "@/components/empty-state-card";
 import { formatAppointmentServicesLabel } from "@/features/appointments/format-appointment-services";
+import {
+  getAppointmentStatusBadgeClass,
+  getAppointmentStatusLabel,
+} from "@/features/appointments/status-ui";
 
 type Params = Promise<{
   id: string;
@@ -32,7 +44,7 @@ function segmentLabel(segment: string) {
     case "at_risk":
       return "Rizičan";
     case "lost":
-      return "Izgubljen";
+      return "Neaktivan";
     default:
       return segment;
   }
@@ -53,21 +65,6 @@ function segmentClasses(segment: string) {
     default:
       return "border-app-soft bg-app-bg text-app-text";
   }
-}
-
-function InsightCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-      <div className="text-sm text-app-muted">{label}</div>
-      <div className="mt-2 text-lg font-semibold text-app-text">{value}</div>
-    </div>
-  );
 }
 
 export default async function ClientDetailsPage({
@@ -93,122 +90,177 @@ export default async function ClientDetailsPage({
     notFound();
   }
 
+  const repeatCandidate =
+    client.pastAppointments.find((appointment) => appointment.status === "completed") ??
+    client.pastAppointments[0] ??
+    null;
+
+  const nextAppointment = client.upcomingAppointments[0] ?? null;
+
   return (
     <main className="min-h-screen bg-app-bg p-4 md:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl font-bold text-app-text">
-                  {client.full_name}
-                </h1>
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${segmentClasses(
-                    client.insights.segment,
-                  )}`}
-                >
-                  {segmentLabel(client.insights.segment)}
-                </span>
+        <section className="rounded-3xl border border-app-soft bg-app-card p-6 shadow-sm md:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="rounded-2xl bg-app-card-alt p-3 text-app-accent">
+                <UserRound className="h-7 w-7" />
               </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="truncate text-3xl font-bold text-app-text">
+                    {client.full_name}
+                  </h1>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${segmentClasses(
+                      client.insights.segment,
+                    )}`}
+                  >
+                    {segmentLabel(client.insights.segment)}
+                  </span>
+                </div>
 
-              <p className="mt-2 text-app-muted">
-                Pregled podataka, inteligencije klijenta i povijesti termina.
-              </p>
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-app-muted">
+                  {client.phone ? (
+                    <a
+                      href={`tel:${client.phone.replace(/\s+/g, "")}`}
+                      className="inline-flex items-center gap-2 font-medium text-app-text hover:text-app-accent"
+                    >
+                      <Phone className="h-4 w-4" />
+                      {client.phone}
+                    </a>
+                  ) : (
+                    <span>Telefon nije upisan</span>
+                  )}
+
+                  {client.email ? (
+                    <a
+                      href={`mailto:${client.email}`}
+                      className="inline-flex items-center gap-2 font-medium text-app-text hover:text-app-accent"
+                    >
+                      <Mail className="h-4 w-4" />
+                      {client.email}
+                    </a>
+                  ) : null}
+                </div>
+              </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/dashboard/appointments/new?client=${client.id}`}
+                className="inline-flex items-center gap-2 rounded-xl bg-app-accent px-4 py-2.5 font-medium text-white transition hover:opacity-90"
+              >
+                <CalendarPlus className="h-4 w-4" />
+                Novi termin
+              </Link>
+
+              {repeatCandidate ? (
+                <Link
+                  href={`/dashboard/appointments/new?repeat=${repeatCandidate.id}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-2.5 font-medium text-app-text transition hover:bg-app-bg"
+                >
+                  <Repeat2 className="h-4 w-4" />
+                  Ponovi zadnji
+                </Link>
+              ) : null}
+
               <Link
                 href={`/dashboard/clients/${client.id}/edit`}
-                className="rounded-xl border border-app-soft bg-white px-4 py-2 font-medium text-app-text transition hover:bg-app-bg"
+                className="inline-flex items-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-2.5 font-medium text-app-text transition hover:bg-app-bg"
               >
+                <Pencil className="h-4 w-4" />
                 Uredi
               </Link>
+
               <Link
                 href="/dashboard/clients"
-                className="rounded-xl border border-app-soft bg-white px-4 py-2 font-medium text-app-text transition hover:bg-app-bg"
+                className="rounded-xl border border-app-soft bg-white px-4 py-2.5 font-medium text-app-text transition hover:bg-app-bg"
               >
                 Natrag
               </Link>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <InsightCard label="Telefon" value={client.phone || "-"} />
-          <InsightCard label="Email" value={client.email || "-"} />
-          <InsightCard label="Broj termina" value={client.appointments_count} />
-          <InsightCard
-            label="Sljedeći termin"
-            value={formatDate(client.next_appointment)}
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <InsightCard
-            label="Odrađeni termini"
-            value={client.insights.completed_appointments}
-          />
-          <InsightCard
-            label="Otkazani termini"
-            value={client.insights.cancelled_appointments}
-          />
-          <InsightCard
-            label="No-show termini"
-            value={client.insights.no_show_appointments}
-          />
-          <InsightCard
-            label="Zadnji dolazak"
-            value={formatDate(client.insights.last_completed_appointment)}
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <InsightCard
-            label="No-show rate"
-            value={`${client.insights.no_show_rate}%`}
-          />
-          <InsightCard
-            label="Cancellation rate"
-            value={`${client.insights.cancellation_rate}%`}
-          />
-          <InsightCard
-            label="Najčešća usluga"
-            value={client.insights.favorite_service || "-"}
-          />
-          <InsightCard
-            label="Omiljeni zaposlenik"
-            value={client.insights.favorite_employee || "-"}
-          />
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-app-text">
-              Inteligencija klijenta
-            </h2>
-
-            <div className="mt-4 space-y-3">
-              <div className="rounded-xl border border-app-soft bg-white px-4 py-3 text-sm text-app-text">
-                Prosječan razmak između dolazaka:{" "}
-                <span className="font-semibold">
-                  {client.insights.average_days_between_visits !== null
-                    ? `${client.insights.average_days_between_visits} dana`
-                    : "-"}
-                </span>
+        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <section className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold text-app-text">Sljedeći termin</h2>
+                <p className="mt-1 text-sm text-app-muted">Najbliža nadolazeća rezervacija.</p>
               </div>
-
-              <div className="rounded-xl border border-app-soft bg-white px-4 py-3 text-sm text-app-text">
-                Segment klijenta:{" "}
-                <span className="font-semibold">
-                  {segmentLabel(client.insights.segment)}
-                </span>
-              </div>
+              {nextAppointment ? (
+                <Link
+                  href={`/dashboard/appointments/${nextAppointment.id}/edit`}
+                  className="text-sm font-semibold text-app-accent"
+                >
+                  Otvori termin
+                </Link>
+              ) : null}
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-app-text">Upozorenja</h2>
+            {nextAppointment ? (
+              <div className="mt-5 rounded-2xl border border-app-soft bg-white p-5">
+                <div className="text-lg font-semibold text-app-text">
+                  {formatDate(nextAppointment.appointment_date)} ·{" "}
+                  {formatTime(nextAppointment.start_time)} -{" "}
+                  {formatTime(nextAppointment.end_time)}
+                </div>
+                <div className="mt-2 text-sm text-app-muted">
+                  {formatAppointmentServicesLabel(
+                    nextAppointment.appointment_services
+                      ?.slice()
+                      .sort((a, b) => a.sort_order - b.sort_order),
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-app-muted">
+                  <span>{nextAppointment.employee?.display_name || "-"}</span>
+                  <span>{nextAppointment.room?.name || "-"}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5">
+                <EmptyStateCard
+                  title="Nema budućih termina"
+                  description="Za ovog klijenta trenutno nema nadolazećih rezervacija."
+                />
+              </div>
+            )}
+
+            {client.upcomingAppointments.length > 1 ? (
+              <div className="mt-4 space-y-2">
+                <div className="text-sm font-semibold text-app-text">
+                  Ostali budući termini
+                </div>
+                {client.upcomingAppointments.slice(1).map((appointment) => (
+                  <Link
+                    key={appointment.id}
+                    href={`/dashboard/appointments/${appointment.id}/edit`}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-app-soft bg-white px-4 py-3 transition hover:bg-app-bg"
+                  >
+                    <div>
+                      <div className="font-medium text-app-text">
+                        {formatDate(appointment.appointment_date)} ·{" "}
+                        {formatTime(appointment.start_time)}
+                      </div>
+                      <div className="mt-1 text-sm text-app-muted">
+                        {formatAppointmentServicesLabel(
+                          appointment.appointment_services
+                            ?.slice()
+                            .sort((a, b) => a.sort_order - b.sort_order),
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-app-accent">Otvori</span>
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </section>
+
+          <section className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-app-text">Važno za klijenta</h2>
 
             <div className="mt-4 space-y-3">
               {client.insights.alerts.length > 0 ? (
@@ -221,81 +273,127 @@ export default async function ClientDetailsPage({
                   </div>
                 ))
               ) : (
-                <EmptyStateCard
-                  title="Nema upozorenja"
-                  description="Za ovog klijenta trenutno nema posebnih upozorenja."
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-app-text">
-              Budući termini
-            </h2>
-
-            <div className="mt-4 space-y-3">
-              {client.upcomingAppointments.length > 0 ? (
-                client.upcomingAppointments.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="rounded-xl border border-app-soft bg-white px-4 py-3"
-                  >
-                    <div className="font-medium text-app-text">
-                      {formatDate(appointment.appointment_date)} ·{" "}
-                      {formatTime(appointment.start_time)} -{" "}
-                      {formatTime(appointment.end_time)}
-                    </div>
-                    <div className="mt-1 text-sm text-app-muted">
-                      {formatAppointmentServicesLabel(
-                        appointment.appointment_services
-                          ?.slice()
-                          .sort((a, b) => a.sort_order - b.sort_order),
-                      )}{" "}
-                      · {appointment.employee?.display_name || "-"} ·{" "}
-                      {appointment.room?.name || "-"}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <EmptyStateCard
-                  title="Nema budućih termina"
-                  description="Za ovog klijenta trenutno nema nadolazećih rezervacija."
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-app-text">Bilješke</h2>
-
-            <div className="mt-4 space-y-3">
-              {client.note ? (
-                <div className="rounded-xl border border-app-soft bg-white px-4 py-3 text-sm text-app-text">
-                  {client.note}
+                <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                  Nema posebnih upozorenja za ovog klijenta.
                 </div>
-              ) : (
-                <EmptyStateCard
-                  title="Nema bilješke"
-                  description="Za ovog klijenta još nije spremljena korisnička bilješka."
-                />
               )}
+
+              {client.note ? (
+                <div className="rounded-xl border border-app-soft bg-white px-4 py-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                    Bilješka o klijentu
+                  </div>
+                  <div className="mt-1 text-sm text-app-text">{client.note}</div>
+                </div>
+              ) : null}
 
               {client.internal_note ? (
-                <div className="rounded-xl border border-app-soft bg-white px-4 py-3 text-sm text-app-text">
-                  {client.internal_note}
+                <div className="rounded-xl border border-app-soft bg-white px-4 py-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                    Interna bilješka
+                  </div>
+                  <div className="mt-1 text-sm text-app-text">{client.internal_note}</div>
                 </div>
               ) : null}
             </div>
-          </div>
+          </section>
         </div>
 
-        <div className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-app-text">
-            Povijest termina
-          </h2>
+        <section className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-app-text">Sažetak klijenta</h2>
+              <p className="mt-1 text-sm text-app-muted">Najkorisnije informacije bez dodatne statističke gužve.</p>
+            </div>
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${segmentClasses(
+                client.insights.segment,
+              )}`}
+            >
+              {segmentLabel(client.insights.segment)}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl bg-app-card-alt p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-app-muted">Zadnji dolazak</div>
+              <div className="mt-1 font-semibold text-app-text">
+                {formatDate(client.insights.last_completed_appointment)}
+              </div>
+            </div>
+            <div className="rounded-xl bg-app-card-alt p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-app-muted">Odrađeno</div>
+              <div className="mt-1 font-semibold text-app-text">
+                {client.insights.completed_appointments}
+              </div>
+            </div>
+            <div className="rounded-xl bg-app-card-alt p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-app-muted">No-show / otkazano</div>
+              <div className="mt-1 font-semibold text-app-text">
+                {client.insights.no_show_appointments} / {client.insights.cancelled_appointments}
+              </div>
+            </div>
+            <div className="rounded-xl bg-app-card-alt p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-app-muted">Najčešća usluga</div>
+              <div className="mt-1 font-semibold text-app-text">
+                {client.insights.favorite_service || "-"}
+              </div>
+            </div>
+          </div>
+
+          <details className="mt-4 rounded-xl border border-app-soft bg-white">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-app-text">
+              Prikaži dodatne informacije
+            </summary>
+            <div className="grid gap-4 border-t border-app-soft p-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <div className="text-xs text-app-muted">Ukupno termina</div>
+                <div className="mt-1 font-semibold text-app-text">{client.appointments_count}</div>
+              </div>
+              <div>
+                <div className="text-xs text-app-muted">No-show stopa</div>
+                <div className="mt-1 font-semibold text-app-text">{client.insights.no_show_rate}%</div>
+              </div>
+              <div>
+                <div className="text-xs text-app-muted">Stopa otkazivanja</div>
+                <div className="mt-1 font-semibold text-app-text">{client.insights.cancellation_rate}%</div>
+              </div>
+              <div>
+                <div className="text-xs text-app-muted">Omiljeni zaposlenik</div>
+                <div className="mt-1 font-semibold text-app-text">{client.insights.favorite_employee || "-"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-app-muted">Prosjek između dolazaka</div>
+                <div className="mt-1 font-semibold text-app-text">
+                  {client.insights.average_days_between_visits !== null
+                    ? `${client.insights.average_days_between_visits} dana`
+                    : "-"}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-app-muted">Zakazano</div>
+                <div className="mt-1 font-semibold text-app-text">{client.insights.scheduled_appointments}</div>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <section className="rounded-2xl border border-app-soft bg-app-card p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-app-text">Povijest termina</h2>
+              <p className="mt-1 text-sm text-app-muted">Prethodni termini i brza mogućnost ponavljanja.</p>
+            </div>
+            {repeatCandidate ? (
+              <Link
+                href={`/dashboard/appointments/new?repeat=${repeatCandidate.id}`}
+                className="inline-flex items-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-2 text-sm font-semibold text-app-text transition hover:bg-app-bg"
+              >
+                <Repeat2 className="h-4 w-4" />
+                Ponovi zadnji
+              </Link>
+            ) : null}
+          </div>
 
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full border-collapse">
@@ -305,8 +403,8 @@ export default async function ClientDetailsPage({
                   <th className="px-4 py-3 font-semibold">Vrijeme</th>
                   <th className="px-4 py-3 font-semibold">Usluga</th>
                   <th className="px-4 py-3 font-semibold">Zaposlenik</th>
-                  <th className="px-4 py-3 font-semibold">Soba</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Akcija</th>
                 </tr>
               </thead>
 
@@ -333,11 +431,18 @@ export default async function ClientDetailsPage({
                     <td className="px-4 py-4 text-app-text">
                       {appointment.employee?.display_name || "-"}
                     </td>
-                    <td className="px-4 py-4 text-app-text">
-                      {appointment.room?.name || "-"}
+                    <td className="px-4 py-4">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAppointmentStatusBadgeClass(appointment.status)}`}>
+                        {getAppointmentStatusLabel(appointment.status)}
+                      </span>
                     </td>
-                    <td className="px-4 py-4 text-app-muted">
-                      {appointment.status}
+                    <td className="px-4 py-4">
+                      <Link
+                        href={`/dashboard/appointments/new?repeat=${appointment.id}`}
+                        className="inline-flex rounded-lg border border-app-soft bg-white px-3 py-2 text-xs font-semibold text-app-text transition hover:bg-app-bg"
+                      >
+                        Ponovi
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -349,11 +454,11 @@ export default async function ClientDetailsPage({
             <div className="mt-4">
               <EmptyStateCard
                 title="Nema povijesti termina"
-                description="Ovaj klijent još nema završenih ili prošlih termina u evidenciji."
+                description="Ovaj klijent još nema prošlih termina u evidenciji."
               />
             </div>
           ) : null}
-        </div>
+        </section>
       </div>
     </main>
   );

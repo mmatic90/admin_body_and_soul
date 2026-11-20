@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { markPriceListPublished } from "@/lib/price-list";
 
 export type SettingsActionState = {
   error: string;
@@ -15,6 +16,7 @@ export type EmployeeFormValues = {
   phone: string;
   color_hex: string;
   password: string;
+  is_online_bookable: boolean;
 };
 
 export type EmployeeActionState = {
@@ -226,6 +228,8 @@ export async function deleteServiceAction(serviceId: string) {
       };
     }
 
+    await markPriceListPublished();
+
     await writeAuditLog({
       action: "service_deleted",
       entityType: "service",
@@ -238,6 +242,10 @@ export async function deleteServiceAction(serviceId: string) {
 
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard/settings/services");
+    revalidatePath("/");
+    revalidatePath("/booking");
+    revalidatePath("/cjenik");
+    revalidatePath("/cjenik/aktualni.csv");
 
     return {
       ok: true,
@@ -1026,6 +1034,7 @@ export async function bulkUpdateEmployeesAction(
     display_name: string;
     color_hex: string | null;
     is_active: boolean;
+    is_online_bookable: boolean;
   }>,
 ) {
   try {
@@ -1044,7 +1053,7 @@ export async function bulkUpdateEmployeesAction(
 
     const { data: beforeItems, error: fetchError } = await supabase
       .from("employees")
-      .select("id, display_name, color_hex, is_active, profile_id")
+      .select("id, display_name, color_hex, is_active, is_online_bookable, profile_id")
       .in("id", ids);
 
     if (fetchError) {
@@ -1065,6 +1074,7 @@ export async function bulkUpdateEmployeesAction(
           display_name: item.display_name.trim(),
           color_hex: item.color_hex?.trim() || null,
           is_active: item.is_active,
+          is_online_bookable: item.is_online_bookable,
         })
         .eq("id", item.id);
 
@@ -1103,6 +1113,7 @@ export async function bulkUpdateEmployeesAction(
           display_name: item.display_name.trim(),
           color_hex: item.color_hex?.trim() || null,
           is_active: item.is_active,
+          is_online_bookable: item.is_online_bookable,
         })),
       },
     });
@@ -1116,6 +1127,7 @@ export async function bulkUpdateEmployeesAction(
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard/calendar/time-grid");
     revalidatePath("/dashboard/schedule");
+    revalidatePath("/booking");
 
     return {
       ok: true,
@@ -1348,6 +1360,7 @@ export async function createEmployeeAction(
       phone: String(formData.get("phone") ?? "").trim(),
       color_hex: String(formData.get("color_hex") ?? "").trim(),
       password: String(formData.get("password") ?? "1234").trim(),
+      is_online_bookable: formData.get("is_online_bookable") === "on",
     };
 
     if (!values.display_name) {
@@ -1434,6 +1447,7 @@ export async function createEmployeeAction(
         email: values.email,
         color_hex: values.color_hex || null,
         is_active: true,
+        is_online_bookable: values.is_online_bookable,
       })
       .select("id")
       .single();
@@ -1460,6 +1474,7 @@ export async function createEmployeeAction(
         phone: values.phone || null,
         color_hex: values.color_hex || null,
         profile_id: userId,
+        is_online_bookable: values.is_online_bookable,
       },
     });
 
@@ -1471,6 +1486,7 @@ export async function createEmployeeAction(
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard/calendar/time-grid");
     revalidatePath("/dashboard/schedule");
+    revalidatePath("/booking");
 
     return {
       error: "",
@@ -1481,6 +1497,7 @@ export async function createEmployeeAction(
         phone: "",
         color_hex: "",
         password: "",
+        is_online_bookable: true,
       },
     };
   } catch (error) {
@@ -1498,6 +1515,7 @@ export async function createEmployeeAction(
         phone: String(formData.get("phone") ?? "").trim(),
         color_hex: String(formData.get("color_hex") ?? "").trim(),
         password: String(formData.get("password") ?? "1234").trim(),
+        is_online_bookable: formData.get("is_online_bookable") === "on",
       },
     };
   }

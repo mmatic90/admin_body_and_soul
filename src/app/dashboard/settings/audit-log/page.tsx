@@ -28,26 +28,26 @@ function actionLabel(action: string) {
     appointment_cancelled: "Otkazan termin", appointment_status_changed: "Promijenjen status termina",
     appointment_deleted: "Obrisan termin", client_created: "Dodan klijent",
     client_updated: "Uređen klijent", client_deleted: "Obrisan klijent",
-    employee_created: "Dodan zaposlenik", employee_updated: "Uređen zaposlenik",
-    employee_deactivated: "Deaktiviran zaposlenik", employee_password_reset: "Resetirana lozinka zaposlenika",
+    employee_created: "Dodan djelatnik", employee_updated: "Uređen djelatnik",
+    employee_deactivated: "Deaktiviran djelatnik", employee_password_reset: "Resetirana lozinka djelatnika",
     service_created: "Dodana usluga", service_deleted: "Obrisana usluga", services_bulk_updated: "Uređene usluge",
     room_created: "Dodana soba", room_deleted: "Obrisana soba", rooms_bulk_updated: "Uređene sobe",
     equipment_created: "Dodana oprema", equipment_deleted: "Obrisana oprema", equipment_bulk_updated: "Uređena oprema",
     service_rooms_bulk_updated: "Uređeno mapiranje usluga i soba",
-    employee_services_bulk_updated: "Uređeno mapiranje zaposlenika i usluga",
+    employee_services_bulk_updated: "Uređeno mapiranje djelatnika i usluga",
     service_equipment_bulk_updated: "Uređeno mapiranje usluga i opreme",
     salon_hours_bulk_updated: "Uređeno radno vrijeme salona",
-    service_group_limits_bulk_updated: "Uređeni group limits",
+    service_group_limits_bulk_updated: "Uređeni paralelni termini po grupama",
   };
   return labels[action] ?? action;
 }
 
 function entityLabel(type: string) {
   const labels: Record<string, string> = {
-    appointment: "Termin", client: "Klijent", employee: "Zaposlenik", service: "Usluga",
+    appointment: "Termin", client: "Klijent", employee: "Djelatnik", service: "Usluga",
     room: "Soba", equipment: "Oprema", service_room_mapping: "Usluge i sobe",
-    employee_service_mapping: "Zaposlenici i usluge", service_equipment_mapping: "Usluge i oprema",
-    salon_working_hours: "Radno vrijeme", service_group_limit: "Group limits",
+    employee_service_mapping: "Djelatnici i usluge", service_equipment_mapping: "Usluge i oprema",
+    salon_working_hours: "Radno vrijeme", service_group_limit: "Paralelni termini po grupama",
   };
   return labels[type] ?? type;
 }
@@ -116,7 +116,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Sea
   return (
     <PageShell maxWidth="max-w-7xl">
       <AuditLogScrollRestorer />
-      <PageHeader title="Audit log" description="Pregled, pretraživanje i filtriranje svih važnih akcija u sustavu." actions={
+      <PageHeader title="Dnevnik aktivnosti" actions={
         <div className="flex flex-wrap gap-2">
           <a href={exportHref} className="rounded-xl bg-app-text px-4 py-2 text-sm font-semibold text-white">Izvezi CSV</a>
           <Link href="/dashboard/settings" className="rounded-xl border border-app-soft bg-white px-4 py-2 text-sm font-medium text-app-text">Natrag</Link>

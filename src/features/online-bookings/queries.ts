@@ -196,7 +196,8 @@ export async function getOnlineBookingAcceptOptions(args: {
         employees (
           id,
           display_name,
-          is_active
+          is_active,
+          is_online_bookable
         )
       `,
       )
@@ -230,7 +231,10 @@ export async function getOnlineBookingAcceptOptions(args: {
   const mappedEmployees =
     employeeMappings
       ?.map((row: any) => row.employees)
-      .filter((employee: any) => employee?.is_active) ?? [];
+      .filter(
+        (employee: any) =>
+          employee?.is_active && employee?.is_online_bookable,
+      ) ?? [];
 
   const mappedRooms =
     roomMappings
@@ -328,6 +332,7 @@ export async function getOnlineBookingAutoSuggestion(args: {
     ],
     intervalMinutes: 30,
     maxSuggestions: 999,
+    onlineOnly: true,
   });
 
   const requestedStartTime = args.requestedStartTime.slice(0, 5);

@@ -105,9 +105,10 @@ export async function POST(request: Request) {
         .maybeSingle(),
       supabase
         .from("employees")
-        .select("id, is_active")
+        .select("id, is_active, is_online_bookable")
         .eq("id", slot.employee_id)
         .eq("is_active", true)
+        .eq("is_online_bookable", true)
         .maybeSingle(),
     ]);
 
@@ -155,6 +156,7 @@ export async function POST(request: Request) {
       intervalMinutes: 30,
       maxSuggestions: 999,
       employeeId: slot.employee_id,
+      onlineOnly: true,
     });
 
     const freshSlot = freshAvailability.suggestions.find(

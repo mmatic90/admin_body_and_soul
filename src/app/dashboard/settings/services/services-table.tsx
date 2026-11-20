@@ -8,7 +8,16 @@ import { deleteServiceAction } from "@/features/settings/actions";
 import SettingsDeleteButton from "@/components/settings-delete-button";
 import { toast } from "sonner";
 
-type Props = { services: ServiceItem[] };
+type Props = {
+  services: ServiceItem[];
+  configuration: Record<
+    string,
+    {
+      employeeCount: number;
+      roomCount: number;
+    }
+  >;
+};
 
 type EditableService = {
   id: string;
@@ -18,8 +27,9 @@ type EditableService = {
   description_en: string;
   duration_minutes: number;
   price_cents: number | null;
-  price_min_cents: number | null;
-  price_max_cents: number | null;
+  base_price_cents: number | null;
+  base_price_reference_date: string;
+  special_sale_name: string;
   display_order: number | null;
   service_group: string;
   service_group_en: string;
@@ -37,8 +47,9 @@ function toEditable(service: ServiceItem): EditableService {
     description_en: service.description_en ?? "",
     duration_minutes: service.duration_minutes,
     price_cents: service.price_cents,
-    price_min_cents: service.price_min_cents,
-    price_max_cents: service.price_max_cents,
+    base_price_cents: service.base_price_cents,
+    base_price_reference_date: service.base_price_reference_date ?? "2026-09-10",
+    special_sale_name: service.special_sale_name ?? "",
     display_order: service.display_order,
     service_group: service.service_group ?? "",
     service_group_en: service.service_group_en ?? "",
@@ -64,7 +75,7 @@ function inputToOrder(value: string) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-export default function ServicesTable({ services }: Props) {
+export default function ServicesTable({ services, configuration }: Props) {
   const initialItems = useMemo(() => services.map(toEditable), [services]);
   const [items, setItems] = useState<EditableService[]>(initialItems);
   const [pending, startTransition] = useTransition();
@@ -96,9 +107,16 @@ export default function ServicesTable({ services }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-app-muted">
-          Redoslijed određuje poziciju usluge unutar kategorije. Za raspon cijene ostavi fiksnu cijenu praznom i unesi Min + Max.
+      <div className="sticky top-2 z-40 flex flex-col gap-3 rounded-2xl border border-app-soft bg-white/95 p-3 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-sm text-app-muted">
+            Svaka usluga ima jednu aktualnu cijenu i jednu baznu cijenu. Za postojeće usluge bazna cijena je ona koja je vrijedila na referentni datum; za kasnije uvedenu uslugu koristi se cijena prvog stavljanja u ponudu.
+          </div>
+          {hasChanges ? (
+            <div className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+              Imaš nespremljene promjene
+            </div>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => setItems(initialItems)} disabled={pending || !hasChanges} className="inline-flex items-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-2 text-sm font-medium disabled:opacity-50">
@@ -110,17 +128,19 @@ export default function ServicesTable({ services }: Props) {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-app-soft">
-        <table className="min-w-[2050px] border-collapse">
-          <thead className="bg-app-table-head">
+      <div className="max-h-[72vh] overflow-auto rounded-2xl border border-app-soft">
+        <table className="min-w-[2450px] border-collapse">
+          <thead className="sticky top-0 z-30 bg-app-table-head shadow-sm">
             <tr className="text-left text-sm text-app-muted">
               <th className="px-4 py-3">Redoslijed</th>
               <th className="px-4 py-3">Naziv HR / EN</th>
+              <th className="px-4 py-3">Provjera</th>
               <th className="px-4 py-3">Opis HR / EN</th>
               <th className="px-4 py-3">Trajanje</th>
-              <th className="px-4 py-3">Fiksna €</th>
-              <th className="px-4 py-3">Min €</th>
-              <th className="px-4 py-3">Max €</th>
+              <th className="px-4 py-3">Aktualna €</th>
+              <th className="px-4 py-3">Bazna €</th>
+              <th className="px-4 py-3">Datum bazne cijene</th>
+              <th className="px-4 py-3">Posebni oblik prodaje</th>
               <th className="px-4 py-3">Kategorija HR / EN</th>
               <th className="px-4 py-3">Prioritetna soba</th>
               <th className="px-4 py-3">Aktivno</th>
@@ -138,14 +158,57 @@ export default function ServicesTable({ services }: Props) {
                   <input value={service.name} onChange={(e) => updateItem(service.id, "name", e.target.value)} className={inputClass} placeholder="HR" />
                   <input value={service.name_en} onChange={(e) => updateItem(service.id, "name_en", e.target.value)} className={inputClass} placeholder="EN" />
                 </td>
+                <td className="px-4 py-4">
+                  <div className="flex min-w-[180px] flex-col gap-1.5">
+                    {!service.is_active ? (
+                      <span className="w-fit rounded-full border border-neutral-200 bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-700">
+                        Neaktivna
+                      </span>
+                    ) : null}
+                    {service.price_cents == null ? (
+                      <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        Nema cijene
+                      </span>
+                    ) : null}
+                    {service.base_price_cents == null ? (
+                      <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        Nema bazne cijene – nije u cjeniku
+                      </span>
+                    ) : null}
+                    {(configuration[service.id]?.employeeCount ?? 0) === 0 ? (
+                      <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        Nema djelatnika
+                      </span>
+                    ) : null}
+                    {(configuration[service.id]?.roomCount ?? 0) === 0 ? (
+                      <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        Nema sobe
+                      </span>
+                    ) : null}
+                    {service.is_active &&
+                    service.price_cents != null &&
+                    (configuration[service.id]?.employeeCount ?? 0) > 0 &&
+                    (configuration[service.id]?.roomCount ?? 0) > 0 ? (
+                      <span className="w-fit rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
+                        Spremna
+                      </span>
+                    ) : null}
+                  </div>
+                </td>
                 <td className="space-y-2 px-4 py-4">
                   <textarea value={service.description} onChange={(e) => updateItem(service.id, "description", e.target.value)} rows={3} className={`${inputClass} min-w-[300px]`} placeholder="Opis HR" />
                   <textarea value={service.description_en} onChange={(e) => updateItem(service.id, "description_en", e.target.value)} rows={3} className={`${inputClass} min-w-[300px]`} placeholder="Description EN" />
                 </td>
                 <td className="px-4 py-4"><input type="number" min={1} value={service.duration_minutes} onChange={(e) => updateItem(service.id, "duration_minutes", Number(e.target.value))} className={`${inputClass} w-24`} /></td>
-                <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.price_cents)} onChange={(e) => updateItem(service.id, "price_cents", inputToCents(e.target.value))} className={`${inputClass} w-24`} /></td>
-                <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.price_min_cents)} onChange={(e) => updateItem(service.id, "price_min_cents", inputToCents(e.target.value))} className={`${inputClass} w-24`} /></td>
-                <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.price_max_cents)} onChange={(e) => updateItem(service.id, "price_max_cents", inputToCents(e.target.value))} className={`${inputClass} w-24`} /></td>
+                <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.price_cents)} onChange={(e) => updateItem(service.id, "price_cents", inputToCents(e.target.value))} className={`${inputClass} w-28`} /></td>
+                <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.base_price_cents)} onChange={(e) => updateItem(service.id, "base_price_cents", inputToCents(e.target.value))} className={`${inputClass} w-28`} /></td>
+                <td className="px-4 py-4">
+                  <input type="date" value={service.base_price_reference_date} onChange={(e) => updateItem(service.id, "base_price_reference_date", e.target.value)} className={`${inputClass} min-w-[150px]`} />
+                  <p className="mt-2 max-w-[190px] text-xs text-app-muted">Standardno 10. 9. 2026.; za kasnije uvedenu uslugu datum prvog stavljanja u ponudu.</p>
+                </td>
+                <td className="px-4 py-4">
+                  <input value={service.special_sale_name} onChange={(e) => updateItem(service.id, "special_sale_name", e.target.value)} className={`${inputClass} min-w-[190px]`} placeholder="npr. Akcija" />
+                </td>
                 <td className="space-y-2 px-4 py-4">
                   <input value={service.service_group} onChange={(e) => updateItem(service.id, "service_group", e.target.value)} className={`${inputClass} min-w-[180px]`} placeholder="HR" />
                   <input value={service.service_group_en} onChange={(e) => updateItem(service.id, "service_group_en", e.target.value)} className={`${inputClass} min-w-[180px]`} placeholder="EN" />

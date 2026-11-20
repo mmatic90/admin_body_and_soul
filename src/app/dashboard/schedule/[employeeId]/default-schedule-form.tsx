@@ -93,7 +93,7 @@ export default function DefaultScheduleForm({ employeeId, defaultSchedule }: Pro
 
       <div className="flex justify-end">
         <button type="submit" disabled={pending} className="rounded-xl bg-app-accent px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-50">
-          {pending ? "Spremanje..." : "Spremi default raspored"}
+          {pending ? "Spremanje..." : "Spremi redovni raspored"}
         </button>
       </div>
     </form>

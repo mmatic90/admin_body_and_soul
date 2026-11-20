@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ServiceItem } from "./types";
 
-export async function getServicesWithPriceRange(): Promise<ServiceItem[]> {
+export async function getServicesWithPricing(): Promise<ServiceItem[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -15,8 +15,9 @@ export async function getServicesWithPriceRange(): Promise<ServiceItem[]> {
         description_en,
         duration_minutes,
         price_cents,
-        price_min_cents,
-        price_max_cents,
+        base_price_cents,
+        base_price_reference_date,
+        special_sale_name,
         display_order,
         service_group,
         service_group_en,

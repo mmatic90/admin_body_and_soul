@@ -38,7 +38,7 @@ export default function RoomCreateForm() {
       <input
         name="name"
         placeholder="Naziv sobe"
-        className="w-full rounded-xl border border-neutral-300 px-4 py-3 outline-none"
+        className="w-full rounded-xl border border-app-soft bg-white px-4 py-3 text-app-text outline-none transition placeholder:text-app-muted focus:border-app-accent"
         required
       />
 
@@ -46,7 +46,7 @@ export default function RoomCreateForm() {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-xl bg-black px-5 py-3 font-medium text-white disabled:opacity-50"
+          className="rounded-xl bg-app-accent px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-50"
         >
           {pending ? "Dodavanje..." : "Dodaj sobu"}
         </button>

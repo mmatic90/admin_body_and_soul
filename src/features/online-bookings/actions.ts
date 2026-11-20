@@ -172,6 +172,39 @@ export async function acceptOnlineBookingRequestAction(formData: FormData) {
     throw new Error("Ovaj zahtjev više nije na čekanju.");
   }
 
+  const [
+    { data: onlineEmployee, error: onlineEmployeeError },
+    { data: employeeService, error: employeeServiceError },
+  ] = await Promise.all([
+    supabase
+      .from("employees")
+      .select("id")
+      .eq("id", employeeId)
+      .eq("is_active", true)
+      .eq("is_online_bookable", true)
+      .maybeSingle(),
+    supabase
+      .from("employee_services")
+      .select("employee_id")
+      .eq("employee_id", employeeId)
+      .eq("service_id", request.service_id)
+      .maybeSingle(),
+  ]);
+
+  if (onlineEmployeeError) {
+    throw new Error(onlineEmployeeError.message);
+  }
+
+  if (employeeServiceError) {
+    throw new Error(employeeServiceError.message);
+  }
+
+  if (!onlineEmployee || !employeeService) {
+    throw new Error(
+      "Odabrani djelatnik nije dostupan za online rezervacije za ovu uslugu.",
+    );
+  }
+
   if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
     throw new Error("Trajanje mora biti veće od 0.");
   }
