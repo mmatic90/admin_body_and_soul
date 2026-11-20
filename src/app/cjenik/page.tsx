@@ -63,6 +63,13 @@ function formatPublished(value: string, lang: Lang) {
   }).format(new Date(value));
 }
 
+function formatArchiveDate(value: string, lang: Lang) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "hr-HR", {
+    dateStyle: "medium",
+  }).format(new Date(year, month - 1, day));
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function PriceListPage({
@@ -190,7 +197,7 @@ export default async function PriceListPage({
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#eadbd2] px-4 py-3 transition hover:bg-[#fffaf7]"
                 >
                   <span className="text-sm font-medium">
-                    {t.published}: {formatPublished(snapshot.published_at, lang)}
+                    {formatArchiveDate(snapshot.snapshot_date, lang)}
                   </span>
                   <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#9b6f5b]">
                     <Download className="h-4 w-4" /> CSV
