@@ -38,9 +38,8 @@ export default function ServiceCreateForm() {
       <input name="service_group" placeholder="Kategorija (HR)" className={inputClass} />
       <input name="service_group_en" placeholder="Kategorija (EN)" className={inputClass} />
       <input name="priority_room" placeholder="Prioritetna soba" className={inputClass} />
-      <input name="price_eur" type="number" min={0} step="0.01" placeholder="Fiksna cijena (€)" className={inputClass} />
-      <input name="price_min_eur" type="number" min={0} step="0.01" placeholder="Min cijena (€)" className={inputClass} />
-      <input name="price_max_eur" type="number" min={0} step="0.01" placeholder="Max cijena (€)" className={inputClass} />
+      <input name="price_eur" type="number" min={0} step="0.01" placeholder="Cijena (€)" className={inputClass} required />
+      <input name="special_sale_name" placeholder="Posebni oblik prodaje (npr. Akcija) – opcionalno" className={inputClass} />
 
       <div className="md:col-span-2 xl:col-span-4 flex justify-end">
         <button type="submit" disabled={pending} className="rounded-xl bg-app-accent px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-50">
