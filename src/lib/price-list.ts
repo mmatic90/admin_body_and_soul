@@ -69,27 +69,43 @@ export async function getPriceListPublication(): Promise<PriceListPublication> {
 
 export async function getRecentPriceListSnapshots() {
   const supabase = createAdminClient();
-  const cutoffDate = getCroatiaDate(
-    new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-  );
+  const cutoff = new Date(Date.now() - 16 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data, error } = await supabase
     .from("price_list_snapshots")
-    .select("id, snapshot_date, published_at, storage_number, archived_at")
-    .gte("snapshot_date", cutoffDate)
-    .order("snapshot_date", { ascending: false });
+    .select("id, published_at, storage_number, archived_at")
+    .gte("archived_at", cutoff)
+    .order("archived_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+
+  const byDate = new Map<string, (typeof data)[number] & { archive_date: string }>();
+
+  for (const snapshot of data ?? []) {
+    const archiveDate = getCroatiaDate(new Date(snapshot.archived_at));
+    if (!byDate.has(archiveDate)) {
+      byDate.set(archiveDate, { ...snapshot, archive_date: archiveDate });
+    }
+  }
+
+  const today = getCroatiaDate();
+  const visibleDates = new Set<string>();
+  for (let i = 0; i < 15; i += 1) {
+    visibleDates.add(
+      getCroatiaDate(new Date(Date.now() - i * 24 * 60 * 60 * 1000)),
+    );
+  }
+
+  return Array.from(byDate.values()).filter((snapshot) =>
+    visibleDates.has(snapshot.archive_date),
+  );
 }
 
 export async function getPriceListSnapshot(id: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("price_list_snapshots")
-    .select(
-      "id, snapshot_date, published_at, storage_number, services, archived_at",
-    )
+    .select("id, published_at, storage_number, services, archived_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -100,30 +116,53 @@ export async function getPriceListSnapshot(id: string) {
 async function saveDailyPriceListSnapshot(publication: PriceListPublication) {
   const supabase = createAdminClient();
 
-  const { data: services, error: servicesError } = await supabase
-    .from("services")
-    .select(PRICE_LIST_SELECT)
-    .eq("is_active", true)
-    .not("price_cents", "is", null)
-    .not("base_price_cents", "is", null)
-    .order("service_group", { ascending: true })
-    .order("display_order", { ascending: true, nullsFirst: false })
-    .order("name", { ascending: true });
+  const [
+    { data: services, error: servicesError },
+    { data: recentSnapshots, error: recentSnapshotsError },
+  ] = await Promise.all([
+    supabase
+      .from("services")
+      .select(PRICE_LIST_SELECT)
+      .eq("is_active", true)
+      .not("price_cents", "is", null)
+      .not("base_price_cents", "is", null)
+      .order("service_group", { ascending: true })
+      .order("display_order", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true }),
+    supabase
+      .from("price_list_snapshots")
+      .select("id, archived_at")
+      .gte(
+        "archived_at",
+        new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+      ),
+  ]);
 
   if (servicesError) throw new Error(servicesError.message);
+  if (recentSnapshotsError) throw new Error(recentSnapshotsError.message);
 
-  const snapshotDate = getCroatiaDate(new Date(publication.published_at));
+  const today = getCroatiaDate(new Date(publication.published_at));
+  const todaysIds = (recentSnapshots ?? [])
+    .filter(
+      (snapshot) => getCroatiaDate(new Date(snapshot.archived_at)) === today,
+    )
+    .map((snapshot) => snapshot.id);
 
-  const { error } = await supabase.from("price_list_snapshots").upsert(
-    {
-      snapshot_date: snapshotDate,
-      published_at: publication.published_at,
-      storage_number: publication.storage_number,
-      services: services ?? [],
-      archived_at: new Date().toISOString(),
-    },
-    { onConflict: "snapshot_date" },
-  );
+  if (todaysIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("price_list_snapshots")
+      .delete()
+      .in("id", todaysIds);
+
+    if (deleteError) throw new Error(deleteError.message);
+  }
+
+  const { error } = await supabase.from("price_list_snapshots").insert({
+    published_at: publication.published_at,
+    storage_number: publication.storage_number,
+    services: services ?? [],
+    archived_at: publication.published_at,
+  });
 
   if (error) throw new Error(error.message);
 }
