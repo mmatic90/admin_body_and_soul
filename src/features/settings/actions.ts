@@ -458,7 +458,6 @@ export async function bulkUpdateRoomsAction(
     id: string;
     name: string;
     is_active: boolean;
-    is_online_bookable: boolean;
   }>,
 ) {
   try {
