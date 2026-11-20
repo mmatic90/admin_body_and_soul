@@ -184,16 +184,18 @@ export async function bulkUpdateServicesWithPricingAction(
         return { ok: false, message: `${item.name}: ${currentError}` };
       }
 
-      const baseError = validatePrice(item.base_price_cents, "Bazna cijena");
-      if (baseError) {
-        return { ok: false, message: `${item.name}: ${baseError}` };
-      }
+      if (item.base_price_cents !== null) {
+        const baseError = validatePrice(item.base_price_cents, "Bazna cijena");
+        if (baseError) {
+          return { ok: false, message: `${item.name}: ${baseError}` };
+        }
 
-      if (!item.base_price_reference_date) {
-        return {
-          ok: false,
-          message: `${item.name}: odaberi datum na koji se bazna cijena odnosi.`,
-        };
+        if (!item.base_price_reference_date) {
+          return {
+            ok: false,
+            message: `${item.name}: odaberi datum na koji se bazna cijena odnosi.`,
+          };
+        }
       }
     }
 
