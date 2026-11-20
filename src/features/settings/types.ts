@@ -6,8 +6,9 @@ export type ServiceItem = {
   description_en: string | null;
   duration_minutes: number;
   price_cents: number | null;
-  price_min_cents: number | null;
-  price_max_cents: number | null;
+  base_price_cents: number | null;
+  base_price_reference_date: string | null;
+  special_sale_name: string | null;
   display_order: number | null;
   service_group: string | null;
   service_group_en: string | null;
