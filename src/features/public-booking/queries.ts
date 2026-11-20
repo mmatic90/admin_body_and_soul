@@ -13,8 +13,6 @@ export type PublicBookingService = {
   description_en: string | null;
   duration_minutes: number;
   price_cents: number | null;
-  price_min_cents: number | null;
-  price_max_cents: number | null;
   display_order: number | null;
   service_group: string | null;
   service_group_en: string | null;
@@ -40,8 +38,6 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
           description_en,
           duration_minutes,
           price_cents,
-          price_min_cents,
-          price_max_cents,
           display_order,
           service_group,
           service_group_en
