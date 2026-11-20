@@ -17,6 +17,8 @@ function isPublicPage(pathname: string) {
     pathname === "/" ||
     pathname === "/booking" ||
     pathname.startsWith("/booking/") ||
+    pathname === "/cjenik" ||
+    pathname.startsWith("/cjenik/") ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml"
   );
