@@ -36,6 +36,8 @@ export async function getCurrentPriceListServices() {
     .from("services")
     .select(PRICE_LIST_SELECT)
     .eq("is_active", true)
+    .not("price_cents", "is", null)
+    .not("base_price_cents", "is", null)
     .order("service_group", { ascending: true })
     .order("display_order", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
@@ -98,6 +100,8 @@ export async function archiveCurrentPriceList() {
       .from("services")
       .select(PRICE_LIST_SELECT)
       .eq("is_active", true)
+      .not("price_cents", "is", null)
+      .not("base_price_cents", "is", null)
       .order("service_group", { ascending: true })
       .order("display_order", { ascending: true, nullsFirst: false })
       .order("name", { ascending: true }),
@@ -162,19 +166,23 @@ export function buildPriceListCsv(rows: PriceListServiceRow[]) {
     "Bazna cijena",
   ].join(";");
 
-  const body = rows.map((row) => {
+  const body = rows
+    .filter(
+      (row) => row.price_cents !== null && row.base_price_cents !== null,
+    )
+    .map((row) => {
     const retail = formatPrice(row.price_cents) ?? "";
     const retailWithSale = row.special_sale_name?.trim()
       ? `${retail} (posebni oblik prodaje: ${row.special_sale_name.trim()})`
       : retail;
     const base = formatPrice(row.base_price_cents) ?? "";
 
-    return [
-      csvEscape(row.name),
-      csvEscape(retailWithSale),
-      csvEscape(base),
-    ].join(";");
-  });
+      return [
+        csvEscape(row.name),
+        csvEscape(retailWithSale),
+        csvEscape(base),
+      ].join(";");
+    });
 
   return `\uFEFF${[header, ...body].join("\r\n")}\r\n`;
 }
