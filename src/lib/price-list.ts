@@ -79,7 +79,15 @@ export async function getRecentPriceListSnapshots() {
 
   if (error) throw new Error(error.message);
 
-  const byDate = new Map<string, (typeof data)[number] & { archive_date: string }>();
+  type RecentSnapshotRow = {
+    id: string;
+    published_at: string;
+    storage_number: number;
+    archived_at: string;
+    archive_date: string;
+  };
+
+  const byDate = new Map<string, RecentSnapshotRow>();
 
   for (const snapshot of data ?? []) {
     const archiveDate = getCroatiaDate(new Date(snapshot.archived_at));
@@ -88,7 +96,6 @@ export async function getRecentPriceListSnapshots() {
     }
   }
 
-  const today = getCroatiaDate();
   const visibleDates = new Set<string>();
   for (let i = 0; i < 15; i += 1) {
     visibleDates.add(
