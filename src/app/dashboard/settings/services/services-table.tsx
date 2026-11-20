@@ -170,6 +170,11 @@ export default function ServicesTable({ services, configuration }: Props) {
                         Nema cijene
                       </span>
                     ) : null}
+                    {service.base_price_cents == null ? (
+                      <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                        Nema bazne cijene – nije u cjeniku
+                      </span>
+                    ) : null}
                     {(configuration[service.id]?.employeeCount ?? 0) === 0 ? (
                       <span className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
                         Nema djelatnika
