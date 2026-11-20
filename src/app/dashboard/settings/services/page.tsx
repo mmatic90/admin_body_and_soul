@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getServicesWithPriceRange } from "@/features/settings/service-pricing-queries";
+import { getServicesWithPricing } from "@/features/settings/service-pricing-queries";
 import {
   getEmployeeServiceMappingData,
   getServiceRoomMappingData,
@@ -13,7 +13,7 @@ export default async function SettingsServicesPage() {
   await requireAdminForSettings();
 
   const [services, employeeMappings, roomMappings] = await Promise.all([
-    getServicesWithPriceRange(),
+    getServicesWithPricing(),
     getEmployeeServiceMappingData(),
     getServiceRoomMappingData(),
   ]);
@@ -62,7 +62,7 @@ export default async function SettingsServicesPage() {
           </summary>
           <div className="border-t border-app-soft p-5">
             <p className="mb-4 text-sm text-app-muted">
-              Za cijenu unesi ili fiksnu cijenu ili minimalnu i maksimalnu cijenu.
+              Svaka usluga ima jednu aktualnu cijenu. Baznu cijenu za postojeće usluge uređuješ u tablici nakon kreiranja.
             </p>
             <ServiceCreateForm />
           </div>
