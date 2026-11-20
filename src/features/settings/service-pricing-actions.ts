@@ -3,10 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
-import {
-  archiveCurrentPriceList,
-  markPriceListPublished,
-} from "@/lib/price-list";
+import { markPriceListPublished } from "@/lib/price-list";
 import type { SettingsActionState } from "./actions";
 
 async function requireUser() {
@@ -84,8 +81,6 @@ export async function createServiceWithPricingAction(
 
     const priceError = validatePrice(price, "Cijena");
     if (priceError) return { error: priceError, success: "" };
-
-    await archiveCurrentPriceList();
 
     const payload = {
       name,
@@ -244,10 +239,6 @@ export async function bulkUpdateServicesWithPricingAction(
         (field) => (before as Record<string, unknown>)[field] !== item[field],
       );
     });
-
-    if (hasPriceListChanges) {
-      await archiveCurrentPriceList();
-    }
 
     const { error } = await supabase
       .from("services")
