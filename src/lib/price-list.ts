@@ -30,6 +30,15 @@ const PRICE_LIST_SELECT = `
   special_sale_name
 `;
 
+function getCroatiaDate(value = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Zagreb",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+}
+
 export async function getCurrentPriceListServices() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -60,13 +69,15 @@ export async function getPriceListPublication(): Promise<PriceListPublication> {
 
 export async function getRecentPriceListSnapshots() {
   const supabase = createAdminClient();
-  const cutoff = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+  const cutoffDate = getCroatiaDate(
+    new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+  );
 
   const { data, error } = await supabase
     .from("price_list_snapshots")
-    .select("id, published_at, storage_number, archived_at")
-    .gte("archived_at", cutoff)
-    .order("archived_at", { ascending: false });
+    .select("id, snapshot_date, published_at, storage_number, archived_at")
+    .gte("snapshot_date", cutoffDate)
+    .order("snapshot_date", { ascending: false });
 
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -76,7 +87,9 @@ export async function getPriceListSnapshot(id: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("price_list_snapshots")
-    .select("id, published_at, storage_number, services, archived_at")
+    .select(
+      "id, snapshot_date, published_at, storage_number, services, archived_at",
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -84,38 +97,33 @@ export async function getPriceListSnapshot(id: string) {
   return data;
 }
 
-export async function archiveCurrentPriceList() {
+async function saveDailyPriceListSnapshot(publication: PriceListPublication) {
   const supabase = createAdminClient();
 
-  const [
-    { data: publication, error: publicationError },
-    { data: services, error: servicesError },
-  ] = await Promise.all([
-    supabase
-      .from("price_list_publication")
-      .select("published_at, storage_number")
-      .eq("id", 1)
-      .single(),
-    supabase
-      .from("services")
-      .select(PRICE_LIST_SELECT)
-      .eq("is_active", true)
-      .not("price_cents", "is", null)
-      .not("base_price_cents", "is", null)
-      .order("service_group", { ascending: true })
-      .order("display_order", { ascending: true, nullsFirst: false })
-      .order("name", { ascending: true }),
-  ]);
+  const { data: services, error: servicesError } = await supabase
+    .from("services")
+    .select(PRICE_LIST_SELECT)
+    .eq("is_active", true)
+    .not("price_cents", "is", null)
+    .not("base_price_cents", "is", null)
+    .order("service_group", { ascending: true })
+    .order("display_order", { ascending: true, nullsFirst: false })
+    .order("name", { ascending: true });
 
-  if (publicationError) throw new Error(publicationError.message);
   if (servicesError) throw new Error(servicesError.message);
-  if ((services ?? []).length === 0) return;
 
-  const { error } = await supabase.from("price_list_snapshots").insert({
-    published_at: publication.published_at,
-    storage_number: publication.storage_number,
-    services,
-  });
+  const snapshotDate = getCroatiaDate(new Date(publication.published_at));
+
+  const { error } = await supabase.from("price_list_snapshots").upsert(
+    {
+      snapshot_date: snapshotDate,
+      published_at: publication.published_at,
+      storage_number: publication.storage_number,
+      services: services ?? [],
+      archived_at: new Date().toISOString(),
+    },
+    { onConflict: "snapshot_date" },
+  );
 
   if (error) throw new Error(error.message);
 }
@@ -130,15 +138,19 @@ export async function markPriceListPublished() {
 
   if (currentError) throw new Error(currentError.message);
 
+  const publication: PriceListPublication = {
+    published_at: new Date().toISOString(),
+    storage_number: Number(current.storage_number ?? 0) + 1,
+  };
+
   const { error } = await supabase
     .from("price_list_publication")
-    .update({
-      published_at: new Date().toISOString(),
-      storage_number: Number(current.storage_number ?? 0) + 1,
-    })
+    .update(publication)
     .eq("id", 1);
 
   if (error) throw new Error(error.message);
+
+  await saveDailyPriceListSnapshot(publication);
 }
 
 export function formatPrice(
@@ -171,11 +183,11 @@ export function buildPriceListCsv(rows: PriceListServiceRow[]) {
       (row) => row.price_cents !== null && row.base_price_cents !== null,
     )
     .map((row) => {
-    const retail = formatPrice(row.price_cents) ?? "";
-    const retailWithSale = row.special_sale_name?.trim()
-      ? `${retail} (posebni oblik prodaje: ${row.special_sale_name.trim()})`
-      : retail;
-    const base = formatPrice(row.base_price_cents) ?? "";
+      const retail = formatPrice(row.price_cents) ?? "";
+      const retailWithSale = row.special_sale_name?.trim()
+        ? `${retail} (posebni oblik prodaje: ${row.special_sale_name.trim()})`
+        : retail;
+      const base = formatPrice(row.base_price_cents) ?? "";
 
       return [
         csvEscape(row.name),
