@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  archiveCurrentPriceList,
+  markPriceListPublished,
+} from "@/lib/price-list";
 
 export type SettingsActionState = {
   error: string;
@@ -214,6 +218,8 @@ export async function deleteServiceAction(serviceId: string) {
       .eq("id", serviceId)
       .maybeSingle();
 
+    await archiveCurrentPriceList();
+
     const { error } = await supabase
       .from("services")
       .delete()
@@ -227,6 +233,8 @@ export async function deleteServiceAction(serviceId: string) {
       };
     }
 
+    await markPriceListPublished();
+
     await writeAuditLog({
       action: "service_deleted",
       entityType: "service",
@@ -239,6 +247,10 @@ export async function deleteServiceAction(serviceId: string) {
 
     revalidatePath("/dashboard/settings");
     revalidatePath("/dashboard/settings/services");
+    revalidatePath("/");
+    revalidatePath("/booking");
+    revalidatePath("/cjenik");
+    revalidatePath("/cjenik/aktualni.csv");
 
     return {
       ok: true,
