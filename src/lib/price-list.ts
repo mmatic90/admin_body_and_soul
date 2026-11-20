@@ -4,7 +4,9 @@ import { PRICE_LIST_CONFIG } from "@/config/price-list";
 export type PriceListServiceRow = {
   id: string;
   name: string;
+  name_en: string | null;
   service_group: string | null;
+  service_group_en: string | null;
   display_order: number | null;
   price_cents: number | null;
   price_min_cents: number | null;
@@ -23,7 +25,9 @@ export type PriceListPublication = {
 const PRICE_LIST_SELECT = `
   id,
   name,
+  name_en,
   service_group,
+  service_group_en,
   display_order,
   price_cents,
   price_min_cents,
