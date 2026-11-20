@@ -12,7 +12,12 @@ type AppointmentRow = {
   service?: { id: string; service_group: string | null } | { id: string; service_group: string | null }[] | null;
 };
 
-type EmployeeRow = { id: string; display_name: string; color_hex: string | null };
+type EmployeeRow = {
+  id: string;
+  display_name: string;
+  color_hex: string | null;
+  is_online_bookable: boolean;
+};
 type RoomRow = { id: string; name: string };
 
 type EffectiveScheduleRow = {
@@ -74,6 +79,7 @@ export async function getSmartAvailability(options: {
   maxSuggestions?: number;
   excludeAppointmentId?: string;
   employeeId?: string;
+  onlineOnly?: boolean;
 }) {
   const {
     date,
@@ -82,6 +88,7 @@ export async function getSmartAvailability(options: {
     maxSuggestions = 3,
     excludeAppointmentId,
     employeeId,
+    onlineOnly = false,
   } = options;
 
   if (!date) return { suggestions: [] as Suggestion[], reason: "Datum je obavezan." };
@@ -113,7 +120,10 @@ export async function getSmartAvailability(options: {
     supabase.from("salon_working_hours").select("day_of_week, opens_at, closes_at, is_closed"),
     supabase.from("employee_services").select("employee_id, service_id").in("service_id", serviceIds),
     supabase.from("service_rooms").select("service_id, room_id").in("service_id", serviceIds),
-    supabase.from("employees").select("id, display_name, color_hex").eq("is_active", true),
+    supabase
+      .from("employees")
+      .select("id, display_name, color_hex, is_online_bookable")
+      .eq("is_active", true),
     supabase.from("rooms").select("id, name").eq("is_active", true),
     supabase
       .from("appointments")
@@ -193,7 +203,10 @@ export async function getSmartAvailability(options: {
   }
 
   let allowedEmployees = ((employees ?? []) as EmployeeRow[]).filter(
-    (employee) => allowedEmployeeIds?.has(employee.id) && (!employeeId || employee.id === employeeId),
+    (employee) =>
+      allowedEmployeeIds?.has(employee.id) &&
+      (!employeeId || employee.id === employeeId) &&
+      (!onlineOnly || employee.is_online_bookable),
   );
   let allowedRooms = ((rooms ?? []) as RoomRow[]).filter((room) => allowedRoomIds?.has(room.id));
 

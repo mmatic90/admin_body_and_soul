@@ -59,6 +59,7 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
       .from("employees")
       .select("id, display_name")
       .eq("is_active", true)
+      .eq("is_online_bookable", true)
       .order("display_name", { ascending: true }),
   ]);
 
@@ -83,8 +84,10 @@ export async function getOnlineBookableServices(): Promise<PublicBookingService[
     }
   }
 
-  return (services ?? []).map((service) => ({
-    ...service,
-    therapists: therapistsByService.get(service.id) ?? [],
-  })) as PublicBookingService[];
+  return (services ?? [])
+    .map((service) => ({
+      ...service,
+      therapists: therapistsByService.get(service.id) ?? [],
+    }))
+    .filter((service) => service.therapists.length > 0) as PublicBookingService[];
 }

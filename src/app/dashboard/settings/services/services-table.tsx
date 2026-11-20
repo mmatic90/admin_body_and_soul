@@ -20,6 +20,11 @@ type EditableService = {
   price_cents: number | null;
   price_min_cents: number | null;
   price_max_cents: number | null;
+  base_price_cents: number | null;
+  base_price_min_cents: number | null;
+  base_price_max_cents: number | null;
+  base_price_reference_date: string;
+  special_sale_name: string;
   display_order: number | null;
   service_group: string;
   service_group_en: string;
@@ -39,6 +44,11 @@ function toEditable(service: ServiceItem): EditableService {
     price_cents: service.price_cents,
     price_min_cents: service.price_min_cents,
     price_max_cents: service.price_max_cents,
+    base_price_cents: service.base_price_cents,
+    base_price_min_cents: service.base_price_min_cents,
+    base_price_max_cents: service.base_price_max_cents,
+    base_price_reference_date: service.base_price_reference_date ?? "2026-09-10",
+    special_sale_name: service.special_sale_name ?? "",
     display_order: service.display_order,
     service_group: service.service_group ?? "",
     service_group_en: service.service_group_en ?? "",
@@ -98,7 +108,7 @@ export default function ServicesTable({ services }: Props) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-app-muted">
-          Redoslijed određuje poziciju usluge unutar kategorije. Za raspon cijene ostavi fiksnu cijenu praznom i unesi Min + Max.
+          Za postojeće usluge unesi stvarnu baznu cijenu koja je vrijedila na referentni datum. Za uslugu uvedenu nakon 10. 9. 2026. kao referentni datum upiši dan kada je prvi put stavljena u ponudu. Datum se čuva samo interno i ne objavljuje se u javnom cjeniku.
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => setItems(initialItems)} disabled={pending || !hasChanges} className="inline-flex items-center gap-2 rounded-xl border border-app-soft bg-white px-4 py-2 text-sm font-medium disabled:opacity-50">
@@ -111,7 +121,7 @@ export default function ServicesTable({ services }: Props) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-app-soft">
-        <table className="min-w-[2050px] border-collapse">
+        <table className="min-w-[2850px] border-collapse">
           <thead className="bg-app-table-head">
             <tr className="text-left text-sm text-app-muted">
               <th className="px-4 py-3">Redoslijed</th>
@@ -121,6 +131,11 @@ export default function ServicesTable({ services }: Props) {
               <th className="px-4 py-3">Fiksna €</th>
               <th className="px-4 py-3">Min €</th>
               <th className="px-4 py-3">Max €</th>
+              <th className="px-4 py-3">Bazna fiksna €</th>
+              <th className="px-4 py-3">Bazna min €</th>
+              <th className="px-4 py-3">Bazna max €</th>
+              <th className="px-4 py-3">Datum bazne cijene</th>
+              <th className="px-4 py-3">Posebni oblik prodaje</th>
               <th className="px-4 py-3">Kategorija HR / EN</th>
               <th className="px-4 py-3">Prioritetna soba</th>
               <th className="px-4 py-3">Aktivno</th>
@@ -146,6 +161,29 @@ export default function ServicesTable({ services }: Props) {
                 <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.price_cents)} onChange={(e) => updateItem(service.id, "price_cents", inputToCents(e.target.value))} className={`${inputClass} w-24`} /></td>
                 <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.price_min_cents)} onChange={(e) => updateItem(service.id, "price_min_cents", inputToCents(e.target.value))} className={`${inputClass} w-24`} /></td>
                 <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.price_max_cents)} onChange={(e) => updateItem(service.id, "price_max_cents", inputToCents(e.target.value))} className={`${inputClass} w-24`} /></td>
+                <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.base_price_cents)} onChange={(e) => updateItem(service.id, "base_price_cents", inputToCents(e.target.value))} className={`${inputClass} w-28`} /></td>
+                <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.base_price_min_cents)} onChange={(e) => updateItem(service.id, "base_price_min_cents", inputToCents(e.target.value))} className={`${inputClass} w-28`} /></td>
+                <td className="px-4 py-4"><input type="number" min={0} step="0.01" value={centsToInput(service.base_price_max_cents)} onChange={(e) => updateItem(service.id, "base_price_max_cents", inputToCents(e.target.value))} className={`${inputClass} w-28`} /></td>
+                <td className="px-4 py-4">
+                  <input
+                    type="date"
+                    value={service.base_price_reference_date}
+                    onChange={(e) => updateItem(service.id, "base_price_reference_date", e.target.value)}
+                    className={`${inputClass} min-w-[150px]`}
+                  />
+                  <p className="mt-2 max-w-[180px] text-xs text-app-muted">
+                    Standardno 10. 9. 2026.; za kasnije uvedenu uslugu datum prvog stavljanja u ponudu.
+                  </p>
+                </td>
+                <td className="px-4 py-4">
+                  <input
+                    value={service.special_sale_name}
+                    onChange={(e) => updateItem(service.id, "special_sale_name", e.target.value)}
+                    className={`${inputClass} min-w-[190px]`}
+                    placeholder="npr. Akcija"
+                  />
+                  <p className="mt-2 max-w-[190px] text-xs text-app-muted">Ostavi prazno ako aktualna cijena nije poseban oblik prodaje.</p>
+                </td>
                 <td className="space-y-2 px-4 py-4">
                   <input value={service.service_group} onChange={(e) => updateItem(service.id, "service_group", e.target.value)} className={`${inputClass} min-w-[180px]`} placeholder="HR" />
                   <input value={service.service_group_en} onChange={(e) => updateItem(service.id, "service_group_en", e.target.value)} className={`${inputClass} min-w-[180px]`} placeholder="EN" />

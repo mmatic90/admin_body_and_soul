@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  archiveCurrentPriceList,
+  markPriceListPublished,
+} from "@/lib/price-list";
 import type { SettingsActionState } from "./actions";
 
 async function requireUser() {
@@ -78,6 +82,7 @@ export async function createServiceWithPricingAction(
     const serviceGroup = normalizeNullableText(formData.get("service_group"));
     const serviceGroupEn = normalizeNullableText(formData.get("service_group_en"));
     const priorityRoom = normalizeNullableText(formData.get("priority_room"));
+    const specialSaleName = normalizeNullableText(formData.get("special_sale_name"));
 
     if (!name) return { error: "Naziv usluge je obavezan.", success: "" };
     if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
@@ -89,6 +94,15 @@ export async function createServiceWithPricingAction(
     const priceError = validatePrices({ fixed, min, max });
     if (priceError) return { error: priceError, success: "" };
 
+    await archiveCurrentPriceList();
+
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Zagreb",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+
     const payload = {
       name,
       name_en: nameEn,
@@ -98,6 +112,11 @@ export async function createServiceWithPricingAction(
       price_cents: fixed,
       price_min_cents: min,
       price_max_cents: max,
+      base_price_cents: fixed,
+      base_price_min_cents: min,
+      base_price_max_cents: max,
+      base_price_reference_date: today,
+      special_sale_name: specialSaleName,
       display_order: displayOrder,
       service_group: serviceGroup,
       service_group_en: serviceGroupEn,
@@ -113,6 +132,8 @@ export async function createServiceWithPricingAction(
       .single();
     if (error) return { error: error.message, success: "" };
 
+    await markPriceListPublished();
+
     await writeAuditLog({
       action: "service_created",
       entityType: "service",
@@ -125,6 +146,8 @@ export async function createServiceWithPricingAction(
     revalidatePath("/dashboard/settings/services");
     revalidatePath("/");
     revalidatePath("/booking");
+    revalidatePath("/cjenik");
+    revalidatePath("/cjenik/aktualni.csv");
     return { error: "", success: "Usluga je dodana." };
   } catch (error) {
     return {
@@ -145,6 +168,11 @@ export async function bulkUpdateServicesWithPricingAction(
     price_cents: number | null;
     price_min_cents: number | null;
     price_max_cents: number | null;
+    base_price_cents: number | null;
+    base_price_min_cents: number | null;
+    base_price_max_cents: number | null;
+    base_price_reference_date: string | null;
+    special_sale_name: string;
     display_order: number | null;
     service_group: string | null;
     service_group_en: string;
@@ -170,6 +198,37 @@ export async function bulkUpdateServicesWithPricingAction(
         max: item.price_max_cents,
       });
       if (priceError) return { ok: false, message: `${item.name}: ${priceError}` };
+
+      const basePriceError = validatePrices({
+        fixed: item.base_price_cents,
+        min: item.base_price_min_cents,
+        max: item.base_price_max_cents,
+      });
+      if (basePriceError) {
+        return { ok: false, message: `${item.name} – bazna cijena: ${basePriceError}` };
+      }
+
+      const hasCurrentPrice =
+        item.price_cents !== null ||
+        (item.price_min_cents !== null && item.price_max_cents !== null);
+      const hasBasePrice =
+        item.base_price_cents !== null ||
+        (item.base_price_min_cents !== null &&
+          item.base_price_max_cents !== null);
+
+      if (hasCurrentPrice && !hasBasePrice) {
+        return {
+          ok: false,
+          message: `${item.name}: unesi baznu cijenu prije spremanja.`,
+        };
+      }
+
+      if (hasBasePrice && !item.base_price_reference_date) {
+        return {
+          ok: false,
+          message: `${item.name}: odaberi datum na koji se bazna cijena odnosi.`,
+        };
+      }
     }
 
     const ids = items.map((item) => item.id);
@@ -188,6 +247,11 @@ export async function bulkUpdateServicesWithPricingAction(
       price_cents: item.price_cents,
       price_min_cents: item.price_min_cents,
       price_max_cents: item.price_max_cents,
+      base_price_cents: item.base_price_cents,
+      base_price_min_cents: item.base_price_min_cents,
+      base_price_max_cents: item.base_price_max_cents,
+      base_price_reference_date: item.base_price_reference_date || null,
+      special_sale_name: item.special_sale_name.trim() || null,
       display_order: item.display_order,
       service_group: item.service_group?.trim() || null,
       service_group_en: item.service_group_en.trim() || null,
@@ -196,10 +260,38 @@ export async function bulkUpdateServicesWithPricingAction(
       is_online_bookable: Boolean(item.is_online_bookable),
     }));
 
+    const priceListFields = [
+      "name",
+      "price_cents",
+      "price_min_cents",
+      "price_max_cents",
+      "base_price_cents",
+      "base_price_min_cents",
+      "base_price_max_cents",
+      "special_sale_name",
+      "is_active",
+    ] as const;
+
+    const hasPriceListChanges = payload.some((item) => {
+      const before = (beforeItems ?? []).find((row) => row.id === item.id);
+      if (!before) return true;
+      return priceListFields.some(
+        (field) => (before as Record<string, unknown>)[field] !== item[field],
+      );
+    });
+
+    if (hasPriceListChanges) {
+      await archiveCurrentPriceList();
+    }
+
     const { error } = await supabase
       .from("services")
       .upsert(payload, { onConflict: "id" });
     if (error) return { ok: false, message: error.message };
+
+    if (hasPriceListChanges) {
+      await markPriceListPublished();
+    }
 
     await writeAuditLog({
       action: "services_bulk_updated",
@@ -212,6 +304,8 @@ export async function bulkUpdateServicesWithPricingAction(
     revalidatePath("/dashboard/settings/services");
     revalidatePath("/");
     revalidatePath("/booking");
+    revalidatePath("/cjenik");
+    revalidatePath("/cjenik/aktualni.csv");
     return { ok: true, message: "Izmjene usluga su spremljene." };
   } catch (error) {
     return {

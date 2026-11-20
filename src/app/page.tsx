@@ -37,6 +37,7 @@ const content = {
     otherLangHref: "/?lang=en",
     badge: "Profesionalna njega u opuštajućem ambijentu",
     navServices: "Usluge",
+    navPriceList: "Cjenik",
     navAbout: "O nama",
     navContact: "Kontakt",
     navBook: "Rezerviraj termin",
@@ -56,6 +57,7 @@ const content = {
     onlineNote:
       "Napomena: online rezervacije nisu dostupne za sve usluge. Za ostale tretmane kontaktiraj salon direktno.",
     onlineBooking: "Online rezervacije",
+    priceList: "Cjenik i bazne cijene",
     directContact: "Direktan kontakt",
     aboutEyebrow: "O nama",
     aboutTitle: "Salon u kojem je svaki tretman osobno iskustvo.",
@@ -76,6 +78,7 @@ const content = {
     otherLangHref: "/?lang=hr",
     badge: "Professional care in a relaxing atmosphere",
     navServices: "Services",
+    navPriceList: "Price list",
     navAbout: "About",
     navContact: "Contact",
     navBook: "Book appointment",
@@ -95,6 +98,7 @@ const content = {
     onlineNote:
       "Note: online booking is not available for all services. For other treatments, please contact the salon directly.",
     onlineBooking: "Online booking",
+    priceList: "Prices and base prices",
     directContact: "Direct contact",
     aboutEyebrow: "About",
     aboutTitle: "A salon where every treatment is a personal experience.",
@@ -278,6 +282,7 @@ export default async function HomePage({
 
             <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
               <a href="#usluge" className="hover:text-[#9b6f5b]">{t.navServices}</a>
+              <Link href={`/cjenik?lang=${lang}`} className="hover:text-[#9b6f5b]">{t.navPriceList}</Link>
               <a href="#o-nama" className="hover:text-[#9b6f5b]">{t.navAbout}</a>
               <a href="#kontakt" className="hover:text-[#9b6f5b]">{t.navContact}</a>
               <Link href={`/booking?lang=${lang}`} className="rounded-full bg-[#2f2723] px-5 py-2.5 text-white transition hover:bg-[#4a3932]">
@@ -378,6 +383,7 @@ export default async function HomePage({
           <p className="leading-7 text-[#6f5a50]">{t.onlineNote}</p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <Link href={`/booking?lang=${lang}`} className="inline-flex justify-center rounded-full bg-[#2f2723] px-6 py-3 font-semibold text-white">{t.onlineBooking}</Link>
+            <Link href={`/cjenik?lang=${lang}`} className="inline-flex justify-center rounded-full border border-[#c9a997] bg-white px-6 py-3 font-semibold text-[#2f2723]">{t.priceList}</Link>
             <a href="#kontakt" className="inline-flex justify-center rounded-full border border-[#c9a997] px-6 py-3 font-semibold text-[#2f2723]">{t.directContact}</a>
           </div>
         </div>

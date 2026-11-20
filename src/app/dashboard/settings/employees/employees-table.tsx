@@ -21,6 +21,7 @@ type EditableEmployee = {
   phone: string;
   color_hex: string;
   is_active: boolean;
+  is_online_bookable: boolean;
 };
 
 function toEditable(employee: EmployeeItem): EditableEmployee {
@@ -31,6 +32,7 @@ function toEditable(employee: EmployeeItem): EditableEmployee {
     phone: employee.phone ?? "",
     color_hex: employee.color_hex ?? "",
     is_active: employee.is_active,
+    is_online_bookable: employee.is_online_bookable,
   };
 }
 
@@ -152,6 +154,7 @@ export default function EmployeesTable({ employees }: Props) {
               <th className="px-4 py-3 font-semibold">Telefon</th>
               <th className="px-4 py-3 font-semibold">Boja</th>
               <th className="px-4 py-3 font-semibold">Aktivno</th>
+              <th className="px-4 py-3 font-semibold">Online rezervacije</th>
               <th className="px-4 py-3 font-semibold">Akcije</th>
             </tr>
           </thead>
@@ -227,6 +230,38 @@ export default function EmployeesTable({ employees }: Props) {
                       }`}
                     />
                   </button>
+                </td>
+
+                <td className="px-4 py-4">
+                  <div className="flex min-w-[170px] items-center gap-3">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={employee.is_online_bookable}
+                      disabled={!employee.is_active}
+                      onClick={() =>
+                        updateItem(
+                          employee.id,
+                          "is_online_bookable",
+                          !employee.is_online_bookable,
+                        )
+                      }
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                        employee.is_online_bookable ? "bg-app-accent" : "bg-app-soft"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                          employee.is_online_bookable ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                    <span className="text-xs text-app-muted">
+                      {employee.is_online_bookable
+                        ? "Može primati online rezervacije"
+                        : "Samo ručni termini"}
+                    </span>
+                  </div>
                 </td>
 
                 <td className="px-4 py-4">
